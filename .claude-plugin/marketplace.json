@@ -1,0 +1,13 @@
+{
+  "name": "pdk-local",
+  "owner": {
+    "name": "Pedro"
+  },
+  "plugins": [
+    {
+      "name": "pdk",
+      "source": "./",
+      "description": "Product manager and tech lead workflow on Linear."
+    }
+  ]
+}

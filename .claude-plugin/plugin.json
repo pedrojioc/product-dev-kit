@@ -1,0 +1,9 @@
+{
+  "name": "pdk",
+  "version": "0.1.0",
+  "description": "Product manager and tech lead workflow on Linear: product source of truth, self-contained requirements, and orchestrated implementation with specialized subagents.",
+  "author": {
+    "name": "Pedro"
+  },
+  "license": "MIT"
+}

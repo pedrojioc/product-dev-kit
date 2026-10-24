@@ -1,50 +1,54 @@
 # Domain design
 
 ## Aggregate
-- Consistency boundary: everything inside changes atomically; everything outside is eventually consistent.
-- One root; outsiders hold and reference only the root. Reference other aggregates by id, never by object.
-- Size small. Start with a single entity plus value objects. Add a child only if an invariant spans it AND must hold in a single transaction. If it can be stale for seconds, split it and react to an event.
-- Signals to split: rarely used data loaded on every write, unrelated actors editing it concurrently, collections that grow unbounded.
-- One use case saves exactly one aggregate. A second aggregate changes in a subscriber reacting to an event.
-- Behavior lives on the aggregate (`course.rename(name)`), not in services that mutate it. A domain service is allowed only for logic spanning aggregates that belongs to none.
-- Creation through a named constructor `Course.create(...)` that validates and records the creation event. Rehydration through `Course.fromPrimitives(...)` (no events). Export with `toPrimitives()`.
+- Consistency boundary: inside changes atomically; outside is eventually consistent. One root; outsiders hold only the root and reference other aggregates by id.
+- Size small. A child entity goes INSIDE only if all hold: it cannot exist without the root, it must be consistent immediately, it is loaded with the root, it has little rules of its own. Otherwise it is its own aggregate referenced by id.
+- Child entities do not extend `AggregateRoot` and have no repository; the root's repository persists them (`order.items`, `level.movements`). Never keep child ids in the root when the child lives inside.
+- Signals to split: rarely used data loaded on every write, unrelated actors editing concurrently, unbounded collections, a 700+ line root.
+- One use case saves exactly one aggregate. Effects on a second aggregate run in a subscriber reacting to an event, never two saves in one use case.
+- Behavior lives on the aggregate (`order.addItems()`), not in services. Methods enforce invariants, record events, expose no public setters.
+- Shape: `static create(...primitives)` validates and records the creation event; `static fromPrimitives(p)` rehydrates without events; `toPrimitives()` exports. Export `<Aggregate>Primitives` next to the class. Constructor private; fields are VOs.
 
 ## Value object
-- Immutable, compared by value, validates in its constructor, no identity. Throws on invalid input; an invalid VO cannot exist.
-- Wrap every domain concept that has a rule or meaning: ids, names, emails, money, ranges, enums. Do not leave primitives in aggregates.
-- Base classes: `StringValueObject`, `NumberValueObject`, `Uuid`, `Enum` with `equals()` and `value`.
-- Optional concept: model absence explicitly (nullable field of VO type, or a null-object VO), never an empty string.
-- Behavior goes in the VO (`money.add(other)`, `range.contains(x)`), returning a new instance.
+- Immutable, compared by value, validates in the constructor, throws `InvalidValueObjectException`. An invalid VO cannot exist.
+- Wrap every concept with a rule or meaning: ids, names, money, quantity, email, status. No bare primitives in aggregates.
+- File is flat in `domain/` beside the aggregate: `product-name.ts` -> `ProductName extends StringValueObject`. No `value-objects/` folder, no `.vo.ts`. Ids: `ProductId extends Uuid`.
+- Multi-part values (`Money` amount+currency, `Quantity`) return new instances from operations and reject mixed currency/unit.
+- Optional concept: nullable field of VO type; `toPrimitives` gives `?.value ?? null`.
 
-## Entity
-- Has identity (id VO) that never changes; equality by id. Mutates only through intention-revealing methods; no public setters.
+## Invariants and errors
+- Rule on the object's own data: VO/entity throws `InvalidValueObjectException` (HTTP 400).
+- Rule on state or policy (status transition, stock): aggregate method throws `BusinessRuleViolationException` (422).
+- Missing record: `NotFoundException` (404), thrown by the Find use case, never by an entity about itself.
+- All extend one `DomainException`; never plain `Error`, never framework/HTTP errors in domain. Name for the violated rule (`OrderNotReadyToClose`), message carries the value. File `<name>.exception.ts` in `domain/exceptions/`.
+- Rules needing outside data (uniqueness) are checked in the use case via a repository port.
 
-## Invariants
-- Enforce every invariant inside the aggregate or its VOs, at construction and at each mutation.
-- Fail fast with a typed domain error (`InvalidArgumentError`, `CourseNameLengthExceeded`), message carrying the offending value.
-- Rules needing outside data (uniqueness) are checked in the use case before creating, via a repository port.
+## Domain services
+- Only for a business operation spanning aggregates that belongs to none, reused or complex enough to test alone (FIFO costing, SKU generation). A single-use rule stays in the use case.
+- Stateless pure class in `domain/services/<name>.service.ts`, no decorators, no repository or infrastructure access. Application loads the aggregates and passes them in.
+- Not a domain service: CRUD wrappers, `*Service` god classes, anything calling email/payment/DB (use case or adapter).
 
 ## Domain events
-- Past-tense, business-meaningful, one per fact: `CourseRenamed`, `UserEmailUpdated` (prefer specific over `UserUpdated`).
-- Immutable; carry aggregate id, event id, occurredOn and only the changed data as primitives.
-- The aggregate records events inside its behavior methods (`this.record(new CourseRenamed(...))`). The use case saves, then publishes `aggregate.pullDomainEvents()`.
-- Subscribers live in application, are idempotent, and do one thing each. Consume a foreign event by translating the payload into local types immediately.
-- Events leaving the module (integration events) are a stable, explicit contract; do not expose internal events as-is.
-
-## Errors
-- Domain errors extend one `DomainError` base, named for the violated rule: `CourseDoesNotExist`, `UserAlreadyExist`.
-- Domain never throws framework or HTTP errors.
+- Past tense, one per business fact, specific over generic (`OrderItemCancelled`, not `OrderUpdated`). File `<name>.event.ts` in `domain/events/`.
+- Extends `DomainEvent`: static `EVENT_NAME = '<aggregate>.<past-verb>'`, `VERSION`, payload of primitives, `toPrimitives()` and `fromPrimitives()` for storage. Raised by the root via `this.record(...)`.
+- Use case saves, then publishes `aggregate.pullDomainEvents()`.
+- Subscribers live in `application/subscribers/`, named Action+On+Event (`ReleaseTableOnOrderClosed`), idempotent, one reaction each, reaching other aggregates/contexts through ports.
+- Classify every subscriber: synchronous (must be atomic with the trigger; runs in the same transaction; failure rolls back) or deferred (external, slow, tolerates delay; outbox, at-least-once, retried). Default deferred.
+- Foreign events: translate payload into local types on receipt. If an event exposes VOs or changes often, the owner publishes a dedicated integration event.
 
 ## Read models
-- Reads whose shape differs from the aggregate use a projection or query service, not the aggregate. Keep them updated via domain events or a view.
+- Reads shaped unlike the aggregate use a query service returning DTOs (see hexagonal), not the aggregate.
 
 ```ts
-class Course extends AggregateRoot {
-  static create(id: string, name: string): Course {
-    const course = Course.fromPrimitives({ id, name });
-    course.record(new CourseCreated(id, name));
-    return course;
+class Order extends AggregateRoot {
+  static create(id: string, type: OrderType): Order {
+    const order = Order.fromPrimitives({ id, type, status: OrderStatus.OPEN, items: [] })
+    order.record(new OrderOpenedEvent({ orderId: id }))
+    return order
   }
-  rename(name: string): void { this.name = new CourseName(name); this.record(new CourseRenamed(this.id.value, name)); }
+  addItems(inputs: AddItemInput[]): void {
+    if (!this.canBeModified()) throw new OrderCannotBeModified(this.status)
+    // ...mutate, then this.record(new OrderItemsAddedEvent(...))
+  }
 }
 ```

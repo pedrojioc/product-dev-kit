@@ -37,7 +37,7 @@ Doubts: <none | numbered questions>
 ```
 # Task packet: SHP-7 / create course use case
 ## Objective
-Add CourseCreator that persists a new Course and publishes CourseCreated.
+Add CreateCourse that persists a new Course and publishes CourseCreated.
 ## Acceptance criteria covered
 Scenario: Create a valid course
   Given no course with id "c1" exists
@@ -48,20 +48,20 @@ Scenario: Reject duplicate id
   When I create a course with id "c1"
   Then it fails with CourseAlreadyExist
 ## Allowed files
-Create: src/courses/application/create/CourseCreator.ts, tests/courses/application/create/CourseCreator.test.ts
+Create: src/contexts/learning/course/application/create/create-course.ts, tests/contexts/learning/course/application/create-course.spec.ts
 Modify: none
 ## Interfaces and signatures already decided
-CourseCreator.run(id: string, name: string): Promise<void>
-CourseRepository (exists): save(c: Course), search(id: CourseId): Course | null
-CourseAlreadyExist extends DomainError (exists)
+CreateCourse.run(id: string, name: string): Promise<void>
+CourseRepository (exists, abstract class): save(c: Course), search(id: CourseId): Course | null
+CourseAlreadyExist extends BusinessRuleViolationException (exists)
 ## Tests to write first
 1. "creates a course" -> repository saved CourseMother equal to input
 2. "throws when the course already exists" -> rejects, nothing saved
 ## Conventions excerpt
-- Use case: primitives in, build VOs, save one aggregate, then publish pullDomainEvents().
-- Mock ports only; use CourseMother.
+- Use case: plain class with run(); primitives in, aggregate builds VOs, save one aggregate, then publish pullDomainEvents().
+- Mock ports only (jest.Mocked); use CourseMother.
 ## Done when
-Tests green, typecheck clean, only the 2 files changed, commit `feat(SHP-7): add course creator use case`.
+Tests green, typecheck clean, only the 2 files changed, commit `feat(SHP-7): add create course use case`.
 ## Response format (max 15 lines)
 Files changed / Tests added + result / Doubts
 ```

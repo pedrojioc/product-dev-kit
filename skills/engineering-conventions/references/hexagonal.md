@@ -1,48 +1,50 @@
-# Hexagonal architecture
+# Hexagonal / onion architecture
 
-## Layers
+## Layout
 ```
-src/<bounded-context>/<module>/
-  domain/          aggregates, entities, value objects, domain events, domain errors, repository ports
-  application/     use cases, ports to external capabilities, event subscribers, response DTOs
-  infrastructure/  driven adapters: repositories, API clients, clock, id generator, event bus
-  interface/       driving adapters: HTTP controllers, CLI, consumers, request validation
-composition root   the only place that wires adapters to ports (DI module / main)
+src/contexts/<bounded-context>/<module>/      module = one aggregate root (+ its child entities)
+  domain/          aggregate, VOs (flat), events/, exceptions/, repositories/, services/
+  application/     <verb>/<verb>-<entity>.ts per use case, dto/, ports/, services/ (query ports), subscribers/, exceptions/
+  infrastructure/  persistence/<tech>/, query-services/, adapters/
+  presentation/    http/controllers/, http/dto/ (request validation)
+  <module>.module.ts   composition root: the only place wiring adapters to ports
+src/shared/<layer>/    technical base only (AggregateRoot, VO bases, Criteria, EventBus, unit of work). No business concepts.
+src/contexts/shared-kernel/   concepts shared by several contexts; consumed through ports like any other context.
 ```
-"interface/" may be named "presentation/" or "http/"; keep one name per project.
+- Name contexts and modules in the business's ubiquitous language (`menu`, not `catalog`; `kitchen`, not `production`).
+- The layer is named `presentation/`. Group by context/module first, then layer; never a global `controllers/` or `services/`.
 
 ## Dependency rule
-- interface -> application -> domain. infrastructure -> application/domain (implements ports).
-- domain imports nothing outside domain (no framework, ORM, SDK, HTTP, env).
-- application imports domain only. Never an adapter, framework or ORM type.
-- Adapters never import each other. Modules never import another module's domain/application: call it through a port in the caller's `application/ports/`, implemented by a driven adapter.
+- presentation -> application -> domain. infrastructure implements ports owned by domain/application.
+- domain imports nothing outside domain: no framework, decorators, ORM, SDK, HTTP, env. Verify with grep on `domain/`.
+- application imports domain and its own ports only; never an adapter, ORM or framework type.
+- A module may call a sibling module of the SAME context directly (its use case). Crossing a bounded context ALWAYS goes through a port: `application/ports/<name>.port.ts` (abstract class) in the caller, implemented by `infrastructure/adapters/<name>.adapter.ts`, which calls the other context's use case (its public application service), never its domain or repository. No exception for shared-kernel.
+- Other contexts' domain events may be subscribed to; translate the payload to local types on receipt (see domain-design).
 
 ## Ports and adapters
-- A port is an interface (or abstract class) owned by the core, named in business language: `CourseRepository.save(course)`, not `insertRow`.
-- Driving adapter (calls in) and driven adapter (called out) get equal rigor; they differ only in direction.
-- Repository port lives in `domain/`; one repository per aggregate root.
-- Non-persistence ports (mailer, payment, clock, uuid generator) live in `application/ports/`.
-- The core must run unchanged against a swapped adapter (in-memory vs Postgres). If a core edit is needed for one adapter, the port leaks: fix the port.
-- Never branch core code on which adapter is active.
+- A port is an `abstract class` named in business language; the class itself is the DI token. No `interface` + `Symbol` pair, no token maps.
+- Repository port: `domain/repositories/<aggregate>.repository.ts`, one per aggregate root, returns aggregates. Impl: `infrastructure/persistence/<tech>/<tech>-<aggregate>.repository.ts`.
+- Read port (query service): `application/services/<aggregate>-query.service.ts`, returns read-model DTOs and `PaginatedResult`, never aggregates; impl in `infrastructure/query-services/`. Use it only when the read shape diverges from the aggregate (lists, filters, joins); a lookup matching the aggregate uses the repository.
+- Non-persistence ports (clock, mailer, other contexts): `application/ports/`. Ports a domain service needs (hasher) live in `domain/services/`.
+- The core must run unchanged against a swapped adapter (in-memory vs Postgres). If a core edit is needed for one adapter, the port leaks.
+- Infrastructure holds no business rule: only fetch, persist, translate.
 
 ## Where code lives
 | Code | Location |
 |---|---|
-| Business rule, invariant | domain (aggregate or value object) |
-| Orchestration: load, call, save, publish | application use case |
-| Read shape that differs from any aggregate | query service port in application, implemented in infrastructure |
-| SQL, ORM entities, mappers to/from aggregate | infrastructure |
-| Request parsing and validation, status codes, serialization | interface |
-| Env/config reading | composition root, injected as plain values |
+| Invariant, business rule | domain (aggregate or VO) |
+| Orchestration: load, call, save one aggregate, publish | application use case |
+| Response DTO and read-model shapes | `application/dto/` (never presentation) |
+| ORM entities, SQL, mapping aggregate <-> row | infrastructure |
+| Request parsing/validation, status codes, auth guards | presentation |
 
-## Naming and structure
-- Files in PascalCase named after the class (`CourseCreator.ts`) unless the project says kebab-case.
-- Group by feature/module first, then by layer. Never a global `controllers/`, `services/` folder.
-- Repository adapters are named for the technology: `PostgresCourseRepository`, `InMemoryCourseRepository`.
-- Wiring happens through constructor injection; no service locators, no static singletons.
+## Naming
+- Files kebab-case, one class per file, named after the class: `create-product.ts`, `product-name.ts`.
+- Suffixes: `.event.ts`, `.exception.ts`, `.repository.ts`, `.port.ts`, `.adapter.ts`, `.request.ts`, `.response.ts`, `.entity.ts`, `.service.ts`, `.mother.ts`. VOs have no suffix.
+- No barrel files in `src/`; import by path alias.
 
 ## Anti-patterns
-- Anemic domain: entities with only getters/setters and logic in services.
-- Controller containing business rules or talking to the repository.
-- ORM entity used as the domain aggregate.
-- Use case returning the raw aggregate to the interface layer.
+- Anemic domain; controller with rules or repository access; ORM entity used as aggregate.
+- Cross-context import of another context's `domain/` or repository from application.
+- Two orchestration styles (plain `.run()` and command/query bus) in one codebase: pick plain use cases.
+- Second exception filter or dead abstraction kept "just in case": delete unused ports.

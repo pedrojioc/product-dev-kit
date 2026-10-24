@@ -1,50 +1,59 @@
 # Use cases
 
 ## Anatomy
-- One use case = one class = one file = one public method (`run()` by default, or a single verb like `register()`).
-- Name the class for the action, as a noun-agent or verb phrase: `CourseCreator`, `UserEmailUpdater`, `CreateCourse`. Do not suffix `UseCase`/`Service`. Match the project's existing choice.
-- Constructor receives ports only (repository, event bus, clock, id generator). No framework types, no other use cases.
-- Folder per feature: `application/create/`, `application/rename/`, each with the use case and its input/output types.
+- One use case = one plain class = one file = one public method `run()`. Never `execute()`/`handle()` (those belong to framework handlers).
+- Name: verb + entity, no suffix: `CreateProduct`, `FindProduct`, `SearchProductsByCriteria`. File `create-product.ts` in `application/create/`.
+- No framework decorators or types. Constructor receives ports and repositories only (repository, `EventBus`, cross-context ports).
+- No command/query bus or `CommandHandler` triads: a single datastore and one entry point (HTTP) get no benefit. Add a bus only for several entry points, middleware, or async execution, and then for all contexts, not some.
+- Calling another use case: only your own module's `Find<Aggregate>` to load-or-throw. Cross-context logic goes through a port; shared logic through a domain service or an event.
 
 ## Flow
-1. Receive primitives (or a plain command DTO). 2. Build value objects (validation for free).
-3. Check preconditions needing data (exists / does not exist) via a repository port.
-4. Load or create the aggregate and call its behavior method.
-5. Save through exactly one repository.
-6. Publish `aggregate.pullDomainEvents()` after the save.
-7. Return a response DTO or nothing.
-No business rule here beyond orchestration; if you write an `if` about domain state, move it to the aggregate.
+1. Receive primitives. 2. Load or create the aggregate through its behavior method (VOs validate on construction).
+3. Check preconditions needing data (exists / not exists) via a repository or port.
+4. Save through exactly one repository. 5. Publish `aggregate.pullDomainEvents()` after the save. 6. Return per the rules below.
+No business rule here beyond orchestration: an `if` on domain state moves into the aggregate. Do not re-check what the domain already enforces.
 
-## Input and output
-- Input: primitives or a flat command object. Never a framework request, never domain objects built by the caller.
-- Commands return `void` (or the new id when the client cannot generate it). Prefer client-generated ids.
-- Queries return a response DTO with a static `fromAggregate(...)`; never the raw aggregate or ORM entity.
-- Request DTOs and schema validation (shape, types, required) belong to the interface layer; domain rules belong to VOs.
+## Input
+- Positional primitives (string, number, boolean, Date, null) or domain enums; a small plain object when many optionals. The use case builds VOs; the caller never passes VOs or framework request objects.
+- Ids of user-created resources come from the client (UUID in the request body); the backend never generates them. Server-side generation only for sequences and numbers (`repository.nextOrderNumber(date)`), which may keep their own transaction.
+- Rejected alternative: handler converts to VOs before the use case.
+
+## Output
+- Commands return `void`, or a server-generated value the client cannot know (order number).
+- Queries return a Response DTO from `application/dto/<name>.response.ts` with a static factory (`fromAggregate`). Never the raw aggregate or ORM entity across to presentation. `Find<Aggregate>` is the internal load-or-throw returning the aggregate for sibling use cases; an endpoint-facing query returns the DTO, so the controller never maps aggregates (older modules do `Response.fromDomain(await find.run(id))` in the controller; do not copy).
+- Lists: `Search<Plural>ByCriteria.run(criteria)` delegates to the query service and returns `PaginatedResult<ListItem>` where `ListItem` is a plain read-model interface.
+
+## Criteria and pagination
+- One list endpoint per resource, always paginated: `page` (default 1), `pageSize` (default 20, max 100). The domain word is `pageSize`, never `limit`.
+- `Criteria` = `Filters` + `Order` + `Pagination` in shared domain; presentation builds it, infrastructure translates it to SQL.
+- Use it for collections that can pass ~100 rows or need dynamic filters/sort. Small catalogs may use `searchAll()` on the repository.
 
 ## Errors
-- Throw typed domain errors (`CourseDoesNotExist`, `UserAlreadyExist`). Do not return error codes or null for failures.
-- Use case never catches an error to translate it into HTTP; the interface layer maps error type -> status (404, 409, 422).
-- Application-only checks (needs loaded data) go in `application/errors/` extending the same domain error base.
-- Not found on load: throw. Existence probes: repository returns `T | null`, use case decides.
+- Throw typed domain exceptions (`IngredientNotExist`); no error codes, no null for failures. Use cases never translate to HTTP; one filter maps exception type -> status.
+- `search`: repository returns `T | null`. The `Find` use case turns null into a `NotFoundException` subclass.
+- Checks needing orchestration context (loaded settings) go in `application/exceptions/` extending the same domain hierarchy. No separate application error base.
 
 ## Transaction boundary
-- The use case is the transaction boundary: one aggregate saved atomically per run.
-- Cross-aggregate effects happen through domain events in separate transactions (eventual consistency).
-- Publish events after a successful save; subscribers must be idempotent.
-- Never call a use case from another use case; share logic via a domain service or an event.
+- One aggregate saved atomically per `run()`. Cross-aggregate effects are subscribers.
+- The transaction is opened outside the use case (interceptor/wrapper at the entry point); use cases stay unaware and call `save` as usual.
+- Publish events after a successful save.
 
-## Repository usage
-- Methods named in business terms: `save`, `search` (may return null), `find` (throws if absent), `searchAll`.
-- Repository returns aggregates, not rows. Mapping happens inside the adapter.
+## Repository method names
+`save` (upsert), `search(id): T | null`, `searchAll(): T[]`, plus intent-named queries. Repositories return aggregates, never rows.
 
 ```ts
-class CourseRenamer {
-  constructor(private readonly repository: CourseRepository, private readonly eventBus: EventBus) {}
+export class RenameCourse {
+  constructor(
+    private readonly repository: CourseRepository,
+    private readonly eventBus: EventBus,
+    private readonly findCourse: FindCourse
+  ) {}
+
   async run(id: string, name: string): Promise<void> {
-    const course = await this.repository.find(new CourseId(id));
-    course.rename(name);
-    await this.repository.save(course);
-    await this.eventBus.publish(course.pullDomainEvents());
+    const course = await this.findCourse.run(id)
+    course.rename(name)
+    await this.repository.save(course)
+    await this.eventBus.publish(course.pullDomainEvents())
   }
 }
 ```

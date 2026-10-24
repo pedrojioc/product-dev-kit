@@ -20,7 +20,7 @@ Create: <paths>
 Modify: <paths>
 Nothing else.
 ## Interfaces and signatures already decided
-<ports, class names, method signatures, error types, event shapes, DTOs>
+<ports, class names, method signatures, input and summary types, error types, event shapes>
 ## Tests to write first
 <ordered list: file, test name, what it asserts; red before green>
 ## Conventions excerpt
@@ -35,33 +35,35 @@ Doubts: <none | numbered questions>
 
 ## Example
 ```
-# Task packet: SHP-7 / create course use case
+# Task packet: SHP-7 / register course use case
 ## Objective
-Add CreateCourse that persists a new Course and publishes CourseCreated.
+Add RegisterCourse that creates and saves a Course and returns its summary.
 ## Acceptance criteria covered
-Scenario: Create a valid course
-  Given no course with id "c1" exists
-  When I create a course with id "c1" and name "DDD"
-  Then the course "c1" is stored
-Scenario: Reject duplicate id
-  Given a course with id "c1" exists
-  When I create a course with id "c1"
-  Then it fails with CourseAlreadyExist
+Scenario: Register a valid course
+  Given no active course with name "DDD" exists
+  When I register a course named "DDD"
+  Then the course is stored and its summary is returned
+Scenario: Reject duplicate name
+  Given an active course named "DDD" exists
+  When I register a course named "DDD"
+  Then it fails with BusinessRuleViolationException and nothing is saved
 ## Allowed files
-Create: src/contexts/learning/course/application/create/create-course.ts, tests/contexts/learning/course/application/create-course.spec.ts
+Create: src/contexts/learning/course/application/register-course.ts, register-course.spec.ts, course-summary.ts
 Modify: none
+Nothing else.
 ## Interfaces and signatures already decided
-CreateCourse.run(id: string, name: string): Promise<void>
-CourseRepository (exists, abstract class): save(c: Course), search(id: CourseId): Course | null
-CourseAlreadyExist extends BusinessRuleViolationException (exists)
+RegisterCourse.run(input: { name: string }): Promise<CourseSummary>
+CourseSummary { id: string; name: string; status: string } via toCourseSummary(course)
+CourseRepository (exists, abstract class): save(c: Course), existsActiveWithName(n: CourseName)
+IdGenerator (shared port) supplies the UUID v7; Course.register({ id, name }) exists.
 ## Tests to write first
-1. "creates a course" -> repository saved CourseMother equal to input
-2. "throws when the course already exists" -> rejects, nothing saved
+1. "registers a course with a generated id and returns its summary" -> saved and summary equal
+2. "rejects a name held by an active course and saves nothing" -> rejects, nothing saved
 ## Conventions excerpt
-- Use case: plain class with run(); primitives in, aggregate builds VOs, save one aggregate, then publish pullDomainEvents().
-- Mock ports only (jest.Mocked); use CourseMother.
+- Use case: plain class, one `run(input)`, VOs built inside, save one aggregate, return a summary (no aggregate).
+- Fakes extend the abstract port; InMemoryCourseRepository and SequentialIdGenerator in the spec.
 ## Done when
-Tests green, typecheck clean, only the 2 files changed, commit `feat(SHP-7): add create course use case`.
+Tests green, build and lint clean, only the allowed files changed, commit `feat(SHP-7): add register course use case`.
 ## Response format (max 15 lines)
 Files changed / Tests added + result / Doubts
 ```

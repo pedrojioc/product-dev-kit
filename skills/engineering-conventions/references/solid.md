@@ -1,39 +1,30 @@
-# SOLID
+# SOLID, style and lint
 
 ## S - Single Responsibility
-A module has one reason to change (one actor/concern).
-Signal: class name needs "And"/"Manager"; a use case with 3+ unrelated collaborators; a file edited for unrelated features.
-Fix: split by reason to change; one use case per file; move rules into the aggregate.
+One reason to change per module. Signal: class name needs "And"/"Manager"; a use case with unrelated collaborators.
+Fix: one use case per file; rules move into the aggregate.
 
 ## O - Open/Closed
-Add behavior by adding code, not editing stable code.
-Signal: growing `switch`/`if` on a type or adapter name; every new variant edits the same function.
-Fix: introduce a port or strategy, one implementation per variant, select in the composition root.
+Add behavior by adding code. Signal: growing `switch` on a type. Fix: a policy abstract class (`CategoryPolicy`) with one implementation per variant, chosen in the composition root.
 
-## L - Liskov Substitution
-Any implementation of a port works wherever the port is used.
-Signal: `instanceof` checks on a port; adapter throws "not supported"; in-memory fake behaves differently from the real one (e.g. ordering, uniqueness).
-Fix: tighten the port contract, share a contract test run against every adapter.
+## L - Liskov
+Any adapter works wherever its port is used. Signal: `instanceof` on a port; an in-memory fake behaving unlike the real adapter. Fix: tighten the port contract; run the same spec against every adapter.
 
 ## I - Interface Segregation
-Clients depend only on methods they use.
-Signal: mocks stubbing many unused methods; a port with 10+ methods; use case using 1 of them.
-Fix: split the port by consumer need (`CourseRepository` vs `CourseQueryService`). One use case per file keeps ports small.
+Ports are small role interfaces shaped by what a use case needs, never header interfaces mirroring a whole class. Split by consumer (`AnimalRepository` vs a query service vs a cross-context lookup).
 
 ## D - Dependency Inversion
-High-level policy depends on abstractions it owns.
-Signal: `import` of an ORM, SDK, `fetch`, `process.env`, `Date.now()` or `uuid()` in domain/application; `new SomeAdapter()` inside a use case.
-Fix: define a port (abstract class = DI token) in business language, inject through the constructor, wire in the module's composition root. Inject clock and id generator for determinism.
+Policy depends on abstractions it owns. Signal: ORM, SDK, `fetch`, `process.env`, `Date.now()`, `randomUUID()` or `new Adapter()` in domain/application. Fix: an abstract-class port in business language, injected by constructor, wired in the module.
 
 ## Companions
-- Prefer composition over inheritance; inherit only from shared base classes (`AggregateRoot`, `ValueObject`).
-- YAGNI: no port or abstraction with a single speculative implementation beyond repository, query-service and cross-context boundaries. Delete abstractions nobody consumes (unused bus ports, token maps).
-- Rule of three: duplicate twice, extract on the third occurrence.
-- Small functions, early returns, guard clauses over nesting; names reveal intent; no comments explaining what.
-- Tell, don't ask: call a behavior method rather than reading state and deciding outside.
+- Composition over inheritance; inherit only shared bases (`AggregateRoot`, `ValueObject`, port abstract classes).
+- YAGNI: no abstraction beyond repository, query service, cross-context boundary and real variation points. Delete unused ports.
+- Early returns and guard clauses; names reveal intent; tell, don't ask.
+- Comments explain a non-obvious why (hidden constraint, workaround, invariant), never what the code says. Default to none.
 
-## Style and lint (enforced in CI: `lint:check` + `format:check`)
-- Prettier: no semicolons, single quotes, no trailing commas, 2 spaces, width 100, `arrowParens: avoid`, LF.
-- ESLint flat config: `eslint:recommended` + `typescript-eslint` recommended + Prettier as an error. `require-await` is an error, `no-unused-vars` a warning; `no-explicit-any` is off (tolerated in test doubles only).
-- Imports use path aliases (`@/`, `@shared`, `@contexts`, `@test`), never deep `../../..` across modules; relative only inside a module.
-- Comments explain why or business rules (use case header: rules + events); never what the code says.
+## Style and lint (CI: build + lint + test)
+- Prettier: semicolons, single quotes, trailing commas `all`, width 100.
+- ESLint flat config: `eslint:recommended` + `typescript-eslint` recommended + `eslint-config-prettier`, run on `src/**/*.ts`.
+- TypeScript `strict`, `module`/`moduleResolution` `NodeNext`, `isolatedModules`; `import type` for type-only imports.
+- Relative imports ending in `.js`; no path aliases, no barrels.
+- All code artifacts in English: identifiers, files, folders, messages, test names, DTO fields, columns, commits.

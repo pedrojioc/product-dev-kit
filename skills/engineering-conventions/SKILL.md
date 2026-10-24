@@ -1,6 +1,6 @@
 ---
 name: engineering-conventions
-description: Generic hexagonal/DDD/SOLID/TDD conventions and the task packet format. Read the references you need.
+description: Hexagonal/DDD/SOLID/TDD conventions (ports and adapters, layer data flow, testing, git) and the task packet format. Read the references you need.
 disable-model-invocation: true
 ---
 
@@ -9,13 +9,14 @@ Read only the references your situation needs.
 
 | Situation | Read |
 |---|---|
-| Deciding layers, folders, dependency direction, ports/adapters | `${CLAUDE_SKILL_DIR}/references/hexagonal.md` |
-| Modeling aggregates, entities, value objects, domain events | `${CLAUDE_SKILL_DIR}/references/domain-design.md` |
-| Designing or implementing a use case, DTOs, criteria/pagination, errors, transactions | `${CLAUDE_SKILL_DIR}/references/use-cases.md` |
-| Reviewing design smells, choosing abstractions, style and lint | `${CLAUDE_SKILL_DIR}/references/solid.md` |
-| Writing or planning tests, TDD loop, mocks, mothers, e2e | `${CLAUDE_SKILL_DIR}/references/testing.md` |
-| NestJS/TypeORM: module wiring, DI tokens, controllers, DTO validation, persistence, migrations | `${CLAUDE_SKILL_DIR}/references/nestjs.md` |
-| Branches, commits, PR hygiene | `${CLAUDE_SKILL_DIR}/references/git-workflow.md` |
+| Layers, folders, dependency direction, contexts, ports/adapters, naming | `${CLAUDE_SKILL_DIR}/references/hexagonal.md` |
+| Aggregates, value objects, domain events, errors, policies | `${CLAUDE_SKILL_DIR}/references/domain-design.md` |
+| Designing or implementing a use case, subscriber, input, events out | `${CLAUDE_SKILL_DIR}/references/use-cases.md` |
+| What each layer receives/returns: request DTO, input, summary, mappers | `${CLAUDE_SKILL_DIR}/references/data-flow.md` |
+| NestJS wiring, controllers/listeners, exception filter, persistence adapter | `${CLAUDE_SKILL_DIR}/references/nestjs.md` |
+| Writing or planning tests, TDD loop, fakes, module specs | `${CLAUDE_SKILL_DIR}/references/testing.md` |
+| Design smells, SOLID, style and lint | `${CLAUDE_SKILL_DIR}/references/solid.md` |
+| Branches, commits, stacked PRs | `${CLAUDE_SKILL_DIR}/references/git-workflow.md` |
 | Any doubt: product, technical, or scope | `${CLAUDE_SKILL_DIR}/references/when-in-doubt.md` |
 | Tech Lead delegating work to an implementer | `${CLAUDE_SKILL_DIR}/references/task-packet.md` |
 

@@ -1,55 +1,40 @@
 # Testing
 
-## Strict TDD loop
+## Strict TDD loop (outside-in)
 1. Red: one failing test for one behavior; run it; see it fail for the right reason.
 2. Green: least code to pass. 3. Refactor with tests green; run all after each step.
-Never write production code without a failing test. Derive tests from the acceptance criteria (Gherkin); one scenario -> at least one test.
+- Per use case, outside-in: (1) use-case test with fake ports, which discovers the ports; (2) domain code until it passes; (3) adapters last (repository, controller/listener), each with its own tests.
+- Never write production code without a failing test. One acceptance scenario -> at least one test.
+- Commands: `pnpm --filter api test`, plus `build` and `lint` before committing (ts-jest erases types).
 
 ## Layout and naming
-- `tests/` mirrors `src/`: `tests/contexts/<ctx>/<module>/{domain,application,infrastructure,presentation}/`; cross-cutting code under `tests/shared/`; e2e under `tests/e2e/`.
-- Files kebab-case: `create-ingredient-category.spec.ts`; e2e `*.e2e-spec.ts`. Large aggregates split by behavior: `order-add-items.spec.ts`, `order-cancel-item.spec.ts`.
-- Names state behavior: `it('should throw OrderCannotBeModified when order is CLOSED')`. Arrange / Act / Assert, one behavior per test, no loops or logic.
-- Two Jest projects: `unit` (`pnpm test`, no external services) and `e2e` (`pnpm test:e2e`, `--runInBand`).
+- Specs are colocated: `register-animal.spec.ts` beside `register-animal.ts`. Jest regex `.*\.spec\.ts$`, ESM mode, `.js` imports mapped.
+- Module specs (`<module>.module.spec.ts`) boot `NestFactory.createApplicationContext` with the real module and fake neighbor modules; they prove wiring and the exported contract.
+- Specs wiring several contexts live in `src/integration/` (event flows such as farrowing -> litter).
+- `src/architecture.spec.ts` fails on any cross-context import.
+- `describe('<ClassName>')`, `it` states the behavior in business language and cites the requirement id when one exists: `it('rejects a repeat dated before the service (R-03.3)')`. Arrange / Act / Assert, one behavior per test.
 
 ## Pyramid
-| Level | Share | Scope | Collaborators |
-|---|---|---|---|
-| Domain unit | most | aggregate, VO, invariants, recorded events | none |
-| Use case unit | many | orchestration | port mocks |
-| Adapter | some | repository, cross-context adapter, subscriber | one real or in-memory collaborator |
-| e2e | few | critical flows through HTTP | real Postgres, whole app |
+| Level | Scope | Collaborators |
+|---|---|---|
+| Domain unit | aggregate, VO, invariants, recorded events | none |
+| Use case | orchestration | in-memory repos + fakes of ports |
+| Subscriber, adapter | event reaction, ACL adapter, repository | one fake or real collaborator |
+| Module / integration | wiring, event flows | Nest context with fake neighbors |
+| HTTP e2e (when controllers exist) | critical flows via the real app | supertest, real database |
 
-## What to test where
-- Domain: valid creation; each invalid input throws the typed exception; each behavior changes state and records the expected event (drain with `pullDomainEvents()` before the act).
-- Use case: saved aggregate (via `toPrimitives()`), published event types (`instanceof`), precondition failure throws AND does not save.
-- Subscriber: given the event, calls the port with translated data; one spec per subscriber.
-- Repository: save then search round-trips an equal aggregate (`toPrimitives()` equality), nulls, absent -> null. Postgres-specific behavior (jsonb, partial indexes, `SKIP LOCKED`, concurrency, replace-children) belongs in e2e, not SQLite.
-- Atomicity: specs proving rollback when a synchronous subscriber fails (`*.uow-atomicity.spec.ts`); controller specs proving the transaction interceptor is applied on mutating routes.
-- Request DTOs with non-trivial validation get their own spec.
+## What to assert
+- Domain: valid creation; each invalid input throws the typed exception; each behavior changes state and records the expected event.
+- Use case: returned summary and saved state; published event names/payloads; a failing precondition throws AND saves nothing AND publishes nothing; a failing save publishes nothing.
+- Subscriber: idempotent (second delivery is a no-op), ignores unknown name/version, translates payload.
+- Repository: save then find round-trips an equal aggregate; absent -> null.
 
 ## Doubles
-- Mock only ports: repository, `EventBus`, query service, cross-context port. Never mock domain objects, VOs or the class under test.
-- Plain typed objects: `repository = { save: jest.fn(), search: jest.fn() } as jest.Mocked<CourseRepository>`; `eventBus = { publish: jest.fn() }`. Assert outcomes (saved aggregate, published events), not internals or call order.
+- Fakes are classes extending the abstract port, not `jest.fn()` mocks. Reuse the in-memory repository, subclassed to inject failure (`RecordingRepository extends InMemory... { failing = false }`).
+- Project-wide fixtures in `shared/<layer>/fixtures/`: `FakeClock`, `SequentialIdGenerator`, `RecordingIntegrationEventPublisher`. Each fixture has its own spec.
+- Never mock domain objects, VOs or the class under test. Assert outcomes, not call order.
 
-## Fixtures
-- Object mother per aggregate: `tests/contexts/<ctx>/<module>/__mothers__/<aggregate>.mother.ts`, with `create(overrides?: Partial<Primitives>)` building through `fromPrimitives`, plus named states (`inactive()`, `inProgress()`). Shared primitives in `tests/shared/__mothers__/` (`UuidMother.random()`).
-- Random valid data via faker, overridable; the test states only what its assertion needs. Never in production code.
-
-## Determinism
-- Inject clock and id generator; no `Date.now()`, `Math.random()`, network or shared DB state in unit tests. Ignore volatile fields (eventId, occurredOn) via matchers.
-- A flaky test is a bug: fix or delete, never retry-until-green.
-
-## e2e (Postgres via Testcontainers)
-- Container starts in Jest `globalSetup`, runs all migrations, stops in teardown. Docker required. No env override of the DB URL.
-- Default style: boot the full app, drive real requests with `supertest`, mint a real JWT; do not seed users/roles.
-- Reset with one shared helper (`truncateTables`/`resetDatabase`), not ad hoc DELETE. A hand-wired (non-HTTP) spec must state its reason in a comment.
-- Each test creates its own data; order-independent; no sleeps (poll with timeout).
-
-```ts
-it('should publish IngredientCategoryCreatedEvent', async () => {
-  await useCase.run(UuidMother.random(), 'Dairy', null, null, null, null, true)
-
-  const events = eventBus.publish.mock.calls[0][0]
-  expect(events[0]).toBeInstanceOf(IngredientCategoryCreatedEvent)
-})
-```
+## Fixtures and determinism
+- No object mothers or builders: each spec declares a local `setup()` returning the use case and fakes, and small factory functions for inputs; the test states only what its assertion needs.
+- Inject clock and id generator; no `Date.now()`, `Math.random()`, network or shared state. Use fixed ISO dates; cover day boundaries.
+- A flaky test is a bug: fix or delete.

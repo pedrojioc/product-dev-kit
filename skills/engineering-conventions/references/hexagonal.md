@@ -1,50 +1,43 @@
-# Hexagonal / onion architecture
+# Hexagonal architecture (ports and adapters)
 
 ## Layout
 ```
-src/contexts/<bounded-context>/<module>/      module = one aggregate root (+ its child entities)
-  domain/          aggregate, VOs (flat), events/, exceptions/, repositories/, services/
-  application/     <verb>/<verb>-<entity>.ts per use case, dto/, ports/, services/ (query ports), subscribers/, exceptions/
-  infrastructure/  persistence/<tech>/, query-services/, adapters/
-  presentation/    http/controllers/, http/dto/ (request validation)
+src/contexts/<context>/<module>/     package-by-feature; module = one aggregate root (+ its child entities)
+  domain/          aggregate, VOs (flat siblings), domain events, repository port, policies, domain services
+  application/     <verb>-<entity>.ts use cases (flat), <entity>-summary.ts, ports/, subscribers/, integration/ (event mappers)
+  infrastructure/  driven adapters: in-memory-<aggregate>-repository.ts | persistence/<tech>/, query-services/, <port>.adapter.ts
+  interface/       driving adapters: http/ (controllers, request DTOs), events/ (<event>.listener.ts)
   <module>.module.ts   composition root: the only place wiring adapters to ports
-src/shared/<layer>/    technical base only (AggregateRoot, VO bases, Criteria, EventBus, unit of work). No business concepts.
-src/contexts/shared-kernel/   concepts shared by several contexts; consumed through ports like any other context.
+src/shared/{domain,application,infrastructure,integration-events,integration-queries}   project-wide kernel
+src/integration/   specs wiring several contexts (outside contexts/)
 ```
-- Name contexts and modules in the business's ubiquitous language (`menu`, not `catalog`; `kitchen`, not `production`).
-- The layer is named `presentation/`. Group by context/module first, then layer; never a global `controllers/` or `services/`.
+- The driving-adapter layer is named `interface/`, never `presentation/`. Placement test: does it call INTO the core (interface) or is it called OUT to (infrastructure)? Both are peers; neither is lesser.
+- Name contexts and modules in the ubiquitous language. Group by context/module first, then layer; never a global `controllers/` or `services/`.
+- `src/shared/` holds only generic concepts any future context reuses verbatim (aggregate root, VO bases, exceptions, clock, id generator, event bus). Vocabulary of one context shared by 2+ of its modules goes in `contexts/<context>/shared/domain/`, created only when needed.
 
 ## Dependency rule
-- presentation -> application -> domain. infrastructure implements ports owned by domain/application.
-- domain imports nothing outside domain: no framework, decorators, ORM, SDK, HTTP, env. Verify with grep on `domain/`.
-- application imports domain and its own ports only; never an adapter, ORM or framework type.
-- A module may call a sibling module of the SAME context directly (its use case). Crossing a bounded context ALWAYS goes through a port: `application/ports/<name>.port.ts` (abstract class) in the caller, implemented by `infrastructure/adapters/<name>.adapter.ts`, which calls the other context's use case (its public application service), never its domain or repository. No exception for shared-kernel.
-- Other contexts' domain events may be subscribed to; translate the payload to local types on receipt (see domain-design).
+- Adapters depend inward on ports. `domain/` and `application/` import no framework, ORM, SDK, HTTP or env; verify by grep.
+- The core must run unchanged against a swapped adapter (in-memory vs real DB). A core edit needed for one adapter means the port leaks.
+- Contexts NEVER import each other (production or test code). `src/architecture.spec.ts` scans imports and fails the build.
+- Contexts meet only through neutral contracts in `src/shared/`:
+  - `integration-events/`: plain readonly DTO `{ eventId, name, version, occurredAt (ISO), payload }`, payload primitives only. Stable name plus numeric `version` (no `.v1` in names). Published in-process after a successful save. Subscribers are idempotent by business key, never by `eventId`.
+  - `integration-queries/`: one abstract-class lookup per cross-context read, implemented by the owner's adapter (it calls its own use case), consumed through a local port in `application/ports/` plus an anti-corruption adapter in `infrastructure/`.
+- Never import another context's domain, application or repository, not even via shared-kernel shortcuts.
 
 ## Ports and adapters
-- A port is an `abstract class` named in business language; the class itself is the DI token. No `interface` + `Symbol` pair, no token maps.
-- Repository port: `domain/repositories/<aggregate>.repository.ts`, one per aggregate root, returns aggregates. Impl: `infrastructure/persistence/<tech>/<tech>-<aggregate>.repository.ts`.
-- Read port (query service): `application/services/<aggregate>-query.service.ts`, returns read-model DTOs and `PaginatedResult`, never aggregates; impl in `infrastructure/query-services/`. Use it only when the read shape diverges from the aggregate (lists, filters, joins); a lookup matching the aggregate uses the repository.
-- Non-persistence ports (clock, mailer, other contexts): `application/ports/`. Ports a domain service needs (hasher) live in `domain/services/`.
-- The core must run unchanged against a swapped adapter (in-memory vs Postgres). If a core edit is needed for one adapter, the port leaks.
+- A port is an `abstract class` in business language; the class is the DI token. Never `interface` + `Symbol`.
+- Ports are small role interfaces shaped by what a use case needs, never header interfaces mirroring a class. A port exists only when a use case in the current step needs it.
+- Repository port: `domain/<aggregate>-repository.ts`, one per aggregate root, returns aggregates (`save`, `findById`, intent-named queries). Impl: `infrastructure/in-memory-<aggregate>-repository.ts` or `persistence/<tech>/`.
+- Read port (query service): `application/services/<x>-query.service.ts`, returns read-model DTOs, only when the read shape diverges from the aggregate. Impl in `infrastructure/query-services/`.
+- Non-persistence ports (clock, id generator, event publisher, cross-context lookups): `application/ports/`, or `shared/` when generic.
 - Infrastructure holds no business rule: only fetch, persist, translate.
 
-## Where code lives
-| Code | Location |
-|---|---|
-| Invariant, business rule | domain (aggregate or VO) |
-| Orchestration: load, call, save one aggregate, publish | application use case |
-| Response DTO and read-model shapes | `application/dto/` (never presentation) |
-| ORM entities, SQL, mapping aggregate <-> row | infrastructure |
-| Request parsing/validation, status codes, auth guards | presentation |
-
 ## Naming
-- Files kebab-case, one class per file, named after the class: `create-product.ts`, `product-name.ts`.
-- Suffixes: `.event.ts`, `.exception.ts`, `.repository.ts`, `.port.ts`, `.adapter.ts`, `.request.ts`, `.response.ts`, `.entity.ts`, `.service.ts`, `.mother.ts`. VOs have no suffix.
-- No barrel files in `src/`; import by path alias.
+- Files kebab-case, one main class per file named after it: `register-animal.ts`, `animal-tag.ts`. VOs and events carry no suffix.
+- Suffixes only: `.exception.ts`, `.event.ts` (integration events), `.adapter.ts`, `.listener.ts`, `.module.ts`, `.mapper.ts`, `.spec.ts`.
+- No barrel files. Relative imports with the explicit `.js` extension (NodeNext ESM); no path aliases.
 
 ## Anti-patterns
-- Anemic domain; controller with rules or repository access; ORM entity used as aggregate.
-- Cross-context import of another context's `domain/` or repository from application.
-- Two orchestration styles (plain `.run()` and command/query bus) in one codebase: pick plain use cases.
-- Second exception filter or dead abstraction kept "just in case": delete unused ports.
+- Anemic domain; controller with rules, repository access or domain imports; ORM row used as aggregate.
+- Any cross-context import; two orchestration styles (plain `run()` vs command bus) in one codebase.
+- Unused ports or abstractions kept "just in case".

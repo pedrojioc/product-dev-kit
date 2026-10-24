@@ -1,59 +1,50 @@
 # Use cases
 
 ## Anatomy
-- One use case = one plain class = one file = one public method `run()`. Never `execute()`/`handle()` (those belong to framework handlers).
-- Name: verb + entity, no suffix: `CreateProduct`, `FindProduct`, `SearchProductsByCriteria`. File `create-product.ts` in `application/create/`.
-- No framework decorators or types. Constructor receives ports and repositories only (repository, `EventBus`, cross-context ports).
-- No command/query bus or `CommandHandler` triads: a single datastore and one entry point (HTTP) get no benefit. Add a bus only for several entry points, middleware, or async execution, and then for all contexts, not some.
-- Calling another use case: only your own module's `Find<Aggregate>` to load-or-throw. Cross-context logic goes through a port; shared logic through a domain service or an event.
+- One use case = one plain class = one file = one public method `run()`. File `register-animal.ts` in `application/`, class `RegisterAnimal` (verb + entity, no suffix). Never `execute()`/`handle()` (`handle()` is for subscribers only).
+- No decorators or framework types. Constructor takes ports only (`private readonly animals: AnimalRepository, ids: IdGenerator, clock: Clock, publisher: IntegrationEventPublisher`); use `import type` for ports used only as types.
+- Input: ONE `<UseCase>Input` interface (exported next to the class) of primitives, `Date`, domain string-literal types and plain nested objects. A lone id is a positional `string`. Never VOs, aggregates or framework request objects.
+- No command/query bus, `CommandHandler` triads or `ApplicationException` base. A bus is added only for several entry points or async execution, then for all contexts.
+- One use case never calls another use case; shared logic goes in the domain, a policy, or an event.
 
 ## Flow
-1. Receive primitives. 2. Load or create the aggregate through its behavior method (VOs validate on construction).
-3. Check preconditions needing data (exists / not exists) via a repository or port.
-4. Save through exactly one repository. 5. Publish `aggregate.pullDomainEvents()` after the save. 6. Return per the rules below.
-No business rule here beyond orchestration: an `if` on domain state moves into the aggregate. Do not re-check what the domain already enforces.
+1. Receive the input. 2. Build VOs (they validate) and load the aggregate; absent -> throw `NotFoundException` here.
+3. Check preconditions needing data (uniqueness, existence, cross-context lookup) via repository or port; throw `BusinessRuleViolationException`.
+4. Call the aggregate's behavior method or static factory; ids come from `IdGenerator`, instants from `Clock`.
+5. `save` through exactly one repository. 6. Publish AFTER the save succeeds (failed save publishes nothing).
+7. Return the summary (see data-flow.md).
+No business rule here beyond orchestration: an `if` on domain state moves into the aggregate. Do not re-check what a VO or aggregate already enforces.
 
-## Input
-- Positional primitives (string, number, boolean, Date, null) or domain enums; a small plain object when many optionals. The use case builds VOs; the caller never passes VOs or framework request objects.
-- Ids of user-created resources come from the client (UUID in the request body); the backend never generates them. Server-side generation only for sequences and numbers (`repository.nextOrderNumber(date)`), which may keep their own transaction.
-- Rejected alternative: handler converts to VOs before the use case.
+## Events out
+- After `save`, `female.pullDomainEvents()`; for each domain event the use case builds an integration event with `application/integration/<event>.mapper.ts` (pure function, new `eventId` from `IdGenerator`) and calls `IntegrationEventPublisher.publish`.
+- Domain events that no other module needs publish nothing.
 
-## Output
-- Commands return `void`, or a server-generated value the client cannot know (order number).
-- Queries return a Response DTO from `application/dto/<name>.response.ts` with a static factory (`fromAggregate`). Never the raw aggregate or ORM entity across to presentation. `Find<Aggregate>` is the internal load-or-throw returning the aggregate for sibling use cases; an endpoint-facing query returns the DTO, so the controller never maps aggregates (older modules do `Response.fromDomain(await find.run(id))` in the controller; do not copy).
-- Lists: `Search<Plural>ByCriteria.run(criteria)` delegates to the query service and returns `PaginatedResult<ListItem>` where `ListItem` is a plain read-model interface.
+## Subscribers (react to another module's event)
+- `application/subscribers/<action>-on-<event>.ts`, class `<Action>On<Event>` with `handle(event: AnyIntegrationEvent)`. Ignore unknown `name`/`version`; narrow the payload; translate ISO strings to local types immediately.
+- Idempotent by business key: look up by key first, no-op if already applied. One reaction each; reach other modules only through ports.
+- `interface/events/<event>.listener.ts` is the driving adapter: subscribes the handler to the bus in `onModuleInit`.
 
-## Criteria and pagination
-- One list endpoint per resource, always paginated: `page` (default 1), `pageSize` (default 20, max 100). The domain word is `pageSize`, never `limit`.
-- `Criteria` = `Filters` + `Order` + `Pagination` in shared domain; presentation builds it, infrastructure translates it to SQL.
-- Use it for collections that can pass ~100 rows or need dynamic filters/sort. Small catalogs may use `searchAll()` on the repository.
+## Queries and lists
+- Lookups matching the aggregate use the repository. Reads shaped differently (filters, joins, pagination) use a query-service port returning read-model DTOs, never aggregates.
+- Lists are always paginated (`page`, `pageSize`, default 20, max 100) through a `Criteria` value built at the entry point and translated by infrastructure.
 
 ## Errors
-- Throw typed domain exceptions (`IngredientNotExist`); no error codes, no null for failures. Use cases never translate to HTTP; one filter maps exception type -> status.
-- `search`: repository returns `T | null`. The `Find` use case turns null into a `NotFoundException` subclass.
-- Checks needing orchestration context (loaded settings) go in `application/exceptions/` extending the same domain hierarchy. No separate application error base.
+- Use cases throw the three shared exceptions (domain-design.md) with a message naming the value; no error codes, no null for failures, no HTTP knowledge. `application/exceptions/` only for typed checks needing orchestration context, extending the same hierarchy.
+- Repository `findById` returns `T | null`; the use case turns null into `NotFoundException`.
 
-## Transaction boundary
-- One aggregate saved atomically per `run()`. Cross-aggregate effects are subscribers.
-- The transaction is opened outside the use case (interceptor/wrapper at the entry point); use cases stay unaware and call `save` as usual.
-- Publish events after a successful save.
-
-## Repository method names
-`save` (upsert), `search(id): T | null`, `searchAll(): T[]`, plus intent-named queries. Repositories return aggregates, never rows.
+## Transactions
+One aggregate saved atomically per `run()`. Cross-aggregate effects are subscribers. Events publish after the save, in-process; add an outbox only when a real database lands and loss of an event becomes unacceptable.
 
 ```ts
-export class RenameCourse {
-  constructor(
-    private readonly repository: CourseRepository,
-    private readonly eventBus: EventBus,
-    private readonly findCourse: FindCourse
-  ) {}
+export class RecordAnimalExit {
+  constructor(private readonly animals: AnimalRepository) {}
 
-  async run(id: string, name: string): Promise<void> {
-    const course = await this.findCourse.run(id)
-    course.rename(name)
-    await this.repository.save(course)
-    await this.eventBus.publish(course.pullDomainEvents())
+  async run(input: RecordAnimalExitInput): Promise<AnimalSummary> {
+    const animal = await this.animals.findById(new AnimalId(input.animalId))
+    if (!animal) throw new NotFoundException(`Animal ${input.animalId} not found`)
+    animal.exit(input.reason, input.occurredOn)
+    await this.animals.save(animal)
+    return toAnimalSummary(animal)
   }
 }
 ```

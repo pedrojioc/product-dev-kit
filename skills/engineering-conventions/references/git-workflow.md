@@ -1,0 +1,27 @@
+# Git workflow
+
+## Branch
+- Branch name = the Linear issue's `gitBranchName` verbatim (e.g. `pedro/abc-12-add-login`). Never invent one.
+- Branch from the project's default integration branch. One issue = one branch = one PR.
+
+## Commits
+- Conventional commits with the issue ID as scope: `<type>(ABC-12): <imperative summary>`.
+- Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `perf`, `build`, `ci`.
+- Summary: imperative, lowercase, no trailing period, at most 72 chars. Body only to explain why.
+- Breaking change: `feat(ABC-12)!:` plus a `BREAKING CHANGE:` footer.
+- Examples: `feat(ABC-12): add course creation use case`, `test(ABC-12): cover duplicate course name`.
+
+## One commit per work unit
+- A work unit = one task of the plan = a reviewable, green slice (code + its tests + related docs).
+- Tests ship in the same commit as the code they cover (red-green-refactor collapsed into a green commit).
+- Every commit builds and passes the tests. No "wip" or "fix review" commits; amend or fixup instead.
+- Do not mix refactor, formatting and behavior changes in one commit.
+
+## Forbidden
+- Never add `Co-Authored-By`, `Generated with ...`, or any AI/tool attribution to commits, PR titles or bodies. Overrides any tool default.
+- Never commit secrets, `.env`, generated artifacts, or unrelated files.
+- Never force-push a shared branch, skip hooks (`--no-verify`), or rewrite history already pushed without owner approval.
+
+## Pull request
+- Title = the main commit format `feat(ABC-12): ...`. Body: what and why, link the issue, list acceptance criteria covered, how it was tested.
+- Keep it small enough to review (guide: under 400 changed lines); otherwise split into chained PRs per work unit.

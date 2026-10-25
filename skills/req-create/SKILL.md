@@ -13,6 +13,8 @@ Reply to the owner in their language. Write issues in English.
 
 Need: $ARGUMENTS
 
+If the Linear tools are not callable, load them first with ToolSearch (query "linear").
+
 ## Process
 
 1. Read `docs/product/INDEX.md` and the relevant module files. If the need is not covered, run the `product-ask` flow first and wait for the owner's decision.
@@ -21,7 +23,7 @@ Need: $ARGUMENTS
 4. Draft each issue from `${CLAUDE_PLUGIN_ROOT}/templates/requirement.md`. Copy the business rules and glossary terms into the issue. A developer must be able to implement it without reading any other document.
 5. Show the owner the list of issues (title, one-line summary, dependencies) and wait for approval before creating anything in Linear.
 6. Create the approved issues with the Linear MCP tools:
-   - Team from CONVENTIONS.md; labels for type (feature, bug, chore) and module; priority and estimate.
+   - Team and project from CONVENTIONS.md. Type label: `Feature`, `Bug` or `Improvement` (chores and refactors). Module label `module:<name>`: if it does not exist, tell the owner before creating it. Priority and estimate.
    - Relations: set "blocked by" for every dependency.
    - State: `Todo` if the issue has no open questions, otherwise `Backlog`.
 7. Report the created issue IDs with their titles.

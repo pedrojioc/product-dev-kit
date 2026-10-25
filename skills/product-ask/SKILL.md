@@ -13,6 +13,8 @@ Reply to the owner in their language. Write files in English.
 
 Question: $ARGUMENTS
 
+If you need Linear and its tools are not callable, load them first with ToolSearch (query "linear").
+
 ## Process
 
 1. Read `docs/product/INDEX.md`, then ONLY the module files relevant to the question.

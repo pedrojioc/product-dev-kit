@@ -4,6 +4,7 @@ The only context an implementer gets. The Tech Lead writes one per work unit, se
 
 ## Rules
 - Implementer must NOT read the full Linear issue or `docs/product`. If the packet is insufficient, return a doubt (see when-in-doubt).
+- Allowed files list production paths and the mirrored test path (`tests/` mirrors `src/`, file name + `.spec.ts`).
 - Implementer touches only "Allowed files" and follows "Tests to write first" in strict TDD order.
 - Conventions excerpt: copy only the lines from CONVENTIONS.md and these references that this packet needs. No whole files.
 - One packet = one work unit = one commit (see git-workflow).
@@ -48,7 +49,7 @@ Scenario: Reject duplicate name
   When I register a course named "DDD"
   Then it fails with BusinessRuleViolationException and nothing is saved
 ## Allowed files
-Create: src/contexts/learning/course/application/register-course.ts, register-course.spec.ts, course-summary.ts
+Create: src/contexts/learning/course/application/register-course.ts, src/contexts/learning/course/application/course-summary.ts, tests/contexts/learning/course/application/register-course.spec.ts
 Modify: none
 Nothing else.
 ## Interfaces and signatures already decided
@@ -61,7 +62,7 @@ IdGenerator (shared port) supplies the UUID v7; Course.register({ id, name }) ex
 2. "rejects a name held by an active course and saves nothing" -> rejects, nothing saved
 ## Conventions excerpt
 - Use case: plain class, one `run(input)`, VOs built inside, save one aggregate, return a summary (no aggregate).
-- Fakes extend the abstract port; InMemoryCourseRepository and SequentialIdGenerator in the spec.
+- Fakes extend the abstract port and live under `tests/` mirroring the port; spec has a local `setup()`.
 ## Done when
 Tests green, build and lint clean, only the allowed files changed, commit `feat(SHP-7): add register course use case`.
 ## Response format (max 15 lines)

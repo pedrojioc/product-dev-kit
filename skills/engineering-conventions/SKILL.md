@@ -14,7 +14,7 @@ Read only the references your situation needs.
 | Designing or implementing a use case, subscriber, input, events out | `${CLAUDE_SKILL_DIR}/references/use-cases.md` |
 | What each layer receives/returns: request DTO, input, summary, mappers | `${CLAUDE_SKILL_DIR}/references/data-flow.md` |
 | NestJS wiring, controllers/listeners, exception filter, persistence adapter | `${CLAUDE_SKILL_DIR}/references/nestjs.md` |
-| Writing or planning tests, TDD loop, fakes, module specs | `${CLAUDE_SKILL_DIR}/references/testing.md` |
+| Writing or planning tests, test folder layout, TDD loop, fakes, e2e | `${CLAUDE_SKILL_DIR}/references/testing.md` |
 | Design smells, SOLID, style and lint | `${CLAUDE_SKILL_DIR}/references/solid.md` |
 | Branches, commits, stacked PRs | `${CLAUDE_SKILL_DIR}/references/git-workflow.md` |
 | Any doubt: product, technical, or scope | `${CLAUDE_SKILL_DIR}/references/when-in-doubt.md` |

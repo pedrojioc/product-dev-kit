@@ -10,7 +10,7 @@
 ## Flow
 1. Receive the input. 2. Build VOs (they validate) and load the aggregate; absent -> throw `NotFoundException` here.
 3. Check preconditions needing data (uniqueness, existence, cross-context lookup) via repository or port; throw `BusinessRuleViolationException`.
-4. Call the aggregate's behavior method or static factory; ids come from `IdGenerator`, instants from `Clock`.
+4. Call the aggregate's behavior method or static factory; ids come from `IdGenerator` (server-side; a client id only with a documented reason), instants from `Clock`.
 5. `save` through exactly one repository. 6. Publish AFTER the save succeeds (failed save publishes nothing).
 7. Return the summary (see data-flow.md).
 No business rule here beyond orchestration: an `if` on domain state moves into the aggregate. Do not re-check what a VO or aggregate already enforces.
@@ -26,14 +26,14 @@ No business rule here beyond orchestration: an `if` on domain state moves into t
 
 ## Queries and lists
 - Lookups matching the aggregate use the repository. Reads shaped differently (filters, joins, pagination) use a query-service port returning read-model DTOs, never aggregates.
-- Lists are always paginated (`page`, `pageSize`, default 20, max 100) through a `Criteria` value built at the entry point and translated by infrastructure.
+- Listings take a `Criteria` (filters, order, `page` default 1, `pageSize` default 20, max 100) built at the entry point from the request DTO and resolved by a query service/port that returns `*Summary` read models, never aggregates.
 
 ## Errors
 - Use cases throw the three shared exceptions (domain-design.md) with a message naming the value; no error codes, no null for failures, no HTTP knowledge. `application/exceptions/` only for typed checks needing orchestration context, extending the same hierarchy.
 - Repository `findById` returns `T | null`; the use case turns null into `NotFoundException`.
 
 ## Transactions
-One aggregate saved atomically per `run()`. Cross-aggregate effects are subscribers. Events publish after the save, in-process; add an outbox only when a real database lands and loss of an event becomes unacceptable.
+One aggregate saved atomically per `run()`. Cross-aggregate effects are subscribers. Events publish after the save, in-process. Outbox: not used while saving+publishing in-process is acceptable. Introduce a transactional outbox when real persistence arrives and losing an event becomes unacceptable.
 
 ```ts
 export class RecordAnimalExit {

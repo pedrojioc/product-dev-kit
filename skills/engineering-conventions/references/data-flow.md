@@ -13,7 +13,7 @@ Rule: nothing typed by an inner layer leaves it. Domain objects never cross the 
 | 6 | interface | summary | HTTP response | nobody: the controller returns the summary unchanged |
 
 ## Types and where they live
-- Request DTO: `interface/http/`, wire-level validation only, never imported by application.
+- Request DTO: class in `interface/http/` validated with class-validator (+ class-transformer); wire-level validation only. Never reaches or is imported by application; the controller maps it to `<UseCase>Input`.
 - `<UseCase>Input`: `application/<use-case>.ts`. Plain object of primitives; no VO, no aggregate.
 - `<Entity>Summary` (read model): `application/<entity>-summary.ts` with `to<Entity>Summary`. Flat plain object: primitives, `Date`, string literals, nested plain objects. No VO, aggregate, entity, or class instance. If another context needs it, the type moves to `shared/integration-queries/`.
 - Commands return the summary of the resulting state, or nothing when there is nothing to tell. Queries return a summary or a read-model DTO from a query service.
@@ -26,4 +26,5 @@ Rule: nothing typed by an inner layer leaves it. Domain objects never cross the 
 - Cross-context read: `integration-queries` lookup returns a neutral summary; the consumer maps it to its own local type in its ACL adapter.
 
 ## Persistence (driven adapter)
-- Repository adapter maps aggregate <-> storage row inside `infrastructure/`; the row type never leaves it. Query services map rows straight to read-model DTOs with no aggregate hydration.
+- Repository adapter maps aggregate <-> storage row inside `infrastructure/`; the row type never leaves it. Query services map rows straight to read-model DTOs with no aggregate restore.
+- Only the repository rebuilds aggregates from rows, through `Aggregate.restore(props)` (domain-design.md).

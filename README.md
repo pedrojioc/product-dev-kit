@@ -17,10 +17,12 @@ Run `/pdk:doctor` in a project to check all of them at once. It reports what is 
 
   ```bash
   claude mcp add codegraph --scope user -- codegraph serve --mcp   # once per machine
-  cd /path/to/repo && codegraph init                               # once per checkout
+  cd /path/to/repo && codegraph init --index                       # once per checkout
   ```
 
-  The plugin deliberately does **not** ship the codegraph server: a second copy would load a duplicate set of tool schemas into every session, which is the opposite of the point. pdk verifies the global one and stops if it is missing. Without an index the Tech Lead stops at preflight and `pdk:explorer` reports `Blocked` rather than falling back to grep.
+  The plugin deliberately does **not** ship the codegraph server: a second copy would load a duplicate set of tool schemas into every session, which is the opposite of the point. pdk verifies the global one and stops if it is missing.
+
+  The per-repo index you do not have to create yourself: a missing `.codegraph/` is the trigger to build it, so `/pdk:implement` runs `codegraph init --index` at preflight, guarded to a real git repository that is not `$HOME` or a temp directory. `pdk:explorer` has no shell, so it reports `Blocked` instead of falling back to grep, and the preflight runs before any delegation.
 - A **Linear** workspace, one team per product. This one the plugin does ship, in `.mcp.json`, because it is pdk's own queue.
 
 ## Install

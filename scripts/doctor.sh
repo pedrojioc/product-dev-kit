@@ -66,7 +66,7 @@ if [ -d .codegraph ]; then
     warn "codegraph index" ".codegraph/ exists but reports no files; run: codegraph index"
   fi
 else
-  fail "codegraph index" "no .codegraph/ in this repo" "codegraph init"
+  fail "codegraph index" "no .codegraph/ in this repo" "codegraph init --index  (/pdk:implement does this for you)"
 fi
 
 # 4. git repository (the Tech Lead branches per issue)

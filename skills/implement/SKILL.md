@@ -14,7 +14,9 @@ Issue: $ARGUMENTS
 If the Linear or codegraph tools are not callable, load them first with ToolSearch (query "linear", query "codegraph").
 
 ## 0. Preflight
-- CodeGraph is required. Call `codegraph_status`. If the tools are missing or there is no index for this repo, stop and tell the owner to run `/pdk:doctor`, which prints the exact fix.
+- CodeGraph is required. Call `codegraph_status`. If its tools are not callable, load them with ToolSearch (query "codegraph"); if they still are not, stop and tell the owner to run `/pdk:doctor`.
+- A missing index is the trigger to create it, not a reason to skip CodeGraph. When this repo has no `.codegraph/`, resolve the root with `git rev-parse --show-toplevel` and run `codegraph init --index` once from there. Plain `init` does not index: `--index` is required.
+- Guardrails for that init: the root must be a git repository, and must not be `$HOME` or under a temp directory (`/tmp`, `/var/tmp`). If a guardrail fails or the init errors, report it and stop.
 - Never fall back to a grep-based exploration of the repo: structural questions go through codegraph or through `pdk:explorer`.
 
 ## 1. Load (keep it small)

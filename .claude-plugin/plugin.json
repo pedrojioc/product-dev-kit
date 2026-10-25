@@ -1,9 +1,15 @@
 {
   "name": "pdk",
+  "displayName": "Product Dev Kit",
   "version": "0.1.0",
   "description": "Product manager and tech lead workflow on Linear: product source of truth, self-contained requirements, and orchestrated implementation with specialized subagents.",
   "author": {
-    "name": "Pedro"
+    "name": "Pedro J",
+    "url": "https://github.com/pedrojioc"
   },
-  "license": "MIT"
+  "homepage": "https://github.com/pedrojioc/product-dev-kit#readme",
+  "repository": "https://github.com/pedrojioc/product-dev-kit",
+  "privacyPolicyUrl": "https://github.com/pedrojioc/product-dev-kit#privacy",
+  "license": "MIT",
+  "keywords": ["linear", "product-management", "hexagonal-architecture", "tdd", "orchestration"]
 }

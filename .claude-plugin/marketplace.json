@@ -1,7 +1,8 @@
 {
-  "name": "pdk-local",
+  "name": "pdk",
   "owner": {
-    "name": "Pedro"
+    "name": "Pedro J",
+    "url": "https://github.com/pedrojioc"
   },
   "plugins": [
     {

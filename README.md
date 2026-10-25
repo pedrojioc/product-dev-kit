@@ -13,9 +13,10 @@ The owner always decides. The PM proposes options with tradeoffs; it never inven
 
 Run `/pdk:doctor` in a project to check all of them at once. It reports what is missing and the exact command that fixes it; it changes nothing.
 
-- **CodeGraph**, configured once for your user and indexed per repository. It is a hard dependency, not an optimization: the Tech Lead and `pdk:explorer` answer structural questions from the index instead of sweeping the repo with grep, and that is where most of the token saving comes from.
+- **CodeGraph** ([colbymchenry/codegraph](https://github.com/colbymchenry/codegraph)), configured once for your user and indexed per repository. It is a hard dependency, not an optimization: the Tech Lead and `pdk:explorer` answer structural questions from the index instead of sweeping the repo with grep, and that is where most of the token saving comes from.
 
   ```bash
+  curl -fsSL https://raw.githubusercontent.com/colbymchenry/codegraph/main/install.sh | sh
   claude mcp add codegraph --scope user -- codegraph serve --mcp   # once per machine
   cd /path/to/repo && codegraph init --index                       # once per checkout
   ```
@@ -31,13 +32,21 @@ pdk is meant to be installed **per project**, so a repository that does not use 
 
 ```bash
 cd /path/to/repo
-claude plugin marketplace add /path/to/product-dev-kit --scope local
-claude plugin install pdk@pdk-local --scope local
+claude plugin install pdk --marketplace pedrojioc/product-dev-kit --scope local
 ```
 
-`--scope local` writes to the repo's `.claude/settings.local.json` (personal, gitignored). Use `--scope project` instead to commit the choice in `.claude/settings.json` and share it with the team; in that case the marketplace must be a git URL, because a local path only resolves on one machine. Drop the flag to install for every project at once (`--scope user`, the default).
+`--scope local` writes to the repo's `.claude/settings.local.json`: yours only, and gitignored. Drop the flag to install it for every project on the machine (`--scope user`, the default).
 
-Then run `/mcp` in that project and authenticate `linear`.
+To share it with a team, declare the marketplace at project scope first, then install:
+
+```bash
+claude plugin marketplace add pedrojioc/product-dev-kit --scope project
+claude plugin install pdk@pdk --scope project
+```
+
+That commits both entries in `.claude/settings.json`. Note what the committed entry does and does not do: it turns the plugin on for your collaborators but [doesn't download it to their machines](https://code.claude.com/docs/en/plugins/install#choose-an-install-scope), so each of them still runs the install command once.
+
+Then, in the project, run `/mcp` to authenticate `linear` and `/pdk:setup` to configure the repo.
 
 ## Per-project setup
 
@@ -83,3 +92,14 @@ Context is packaged once and reused, instead of being re-read by every worker:
 `skills/engineering-conventions/` holds the generic rules: hexagonal layering, domain design, use cases, the layer-to-layer data flow, SOLID, testing, NestJS wiring, git workflow, the doubt protocol, and the task packet format. A project's own `CONVENTIONS.md` overrides them.
 
 Tests live in a top-level `tests/` folder that mirrors the source tree exactly, one spec per production file, never next to the code.
+
+## Privacy
+
+The plugin itself collects nothing and sends nothing anywhere. Two components talk to something outside your machine:
+
+- **Linear**, through the MCP server this plugin ships. Everything the PM and the Tech Lead write — requirements, plans, comments — goes to your own Linear workspace, under [Linear's privacy policy](https://linear.app/privacy). You authenticate it yourself with `/mcp`.
+- **Nothing else.** CodeGraph indexes and queries entirely on your machine, and `/pdk:doctor` only reads local files and your Claude Code settings.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

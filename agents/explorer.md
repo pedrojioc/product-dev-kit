@@ -3,7 +3,7 @@ name: explorer
 description: Read-only code mapper. Returns a compact map of the files, symbols and patterns relevant to one question. Use before designing or when a packet needs repo facts.
 model: haiku
 effort: low
-tools: Read, Grep, Glob, mcp__codegraph__*, mcp__plugin_pdk_codegraph__*
+tools: Read, Grep, Glob, mcp__codegraph__*
 omitClaudeMd: true
 maxTurns: 15
 ---

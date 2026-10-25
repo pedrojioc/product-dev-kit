@@ -14,7 +14,7 @@ Issue: $ARGUMENTS
 If the Linear or codegraph tools are not callable, load them first with ToolSearch (query "linear", query "codegraph").
 
 ## 0. Preflight
-- CodeGraph is required. Call `codegraph_status`. If there is no index for this repo, stop and tell the owner to run `codegraph init` in the project root.
+- CodeGraph is required. Call `codegraph_status`. If the tools are missing or there is no index for this repo, stop and tell the owner to run `/pdk:doctor`, which prints the exact fix.
 - Never fall back to a grep-based exploration of the repo: structural questions go through codegraph or through `pdk:explorer`.
 
 ## 1. Load (keep it small)

@@ -11,14 +11,17 @@ The owner always decides. The PM proposes options with tradeoffs; it never inven
 
 ## Requirements
 
-- **CodeGraph**, installed and indexed in every repository that uses pdk. It is a hard dependency, not an optimization: the Tech Lead and `pdk:explorer` answer structural questions from the index instead of sweeping the repo with grep, and that is where most of the token saving comes from. The plugin ships the server in `.mcp.json`; the `codegraph` binary must be on `PATH`, and the repo needs its own `.codegraph/` index:
+Run `/pdk:doctor` in a project to check all of them at once. It reports what is missing and the exact command that fixes it; it changes nothing.
+
+- **CodeGraph**, configured once for your user and indexed per repository. It is a hard dependency, not an optimization: the Tech Lead and `pdk:explorer` answer structural questions from the index instead of sweeping the repo with grep, and that is where most of the token saving comes from.
 
   ```bash
-  cd /path/to/repo && codegraph init
+  claude mcp add codegraph --scope user -- codegraph serve --mcp   # once per machine
+  cd /path/to/repo && codegraph init                               # once per checkout
   ```
 
-  Without an index the Tech Lead stops at preflight and `pdk:explorer` reports `Blocked` rather than falling back to grep.
-- A **Linear** workspace, one team per product. The plugin ships the Linear MCP server too.
+  The plugin deliberately does **not** ship the codegraph server: a second copy would load a duplicate set of tool schemas into every session, which is the opposite of the point. pdk verifies the global one and stops if it is missing. Without an index the Tech Lead stops at preflight and `pdk:explorer` reports `Blocked` rather than falling back to grep.
+- A **Linear** workspace, one team per product. This one the plugin does ship, in `.mcp.json`, because it is pdk's own queue.
 
 ## Install
 
@@ -47,6 +50,7 @@ Linear: one team per product, because the issue ID prefix is the team identifier
 | `/pdk:product-init` | PM | Interviews the owner one question at a time and writes `docs/product/` (index, modules, decisions log) |
 | `/pdk:product-ask <question>` | PM | Answers from the product docs, or proposes options and waits for the owner to decide |
 | `/pdk:req-create <need>` | PM | Splits a need into self-contained Linear issues, shown for approval before creation |
+| `/pdk:doctor` | — | Verifies the requirements of the current project and prints the fixes |
 | `/pdk:next [filter]` | Tech Lead | Shows the next unblocked `Todo` issue by priority and offers to implement it |
 | `/pdk:implement <ID>` | Tech Lead | Gate, design, task packets, delegation, verification, Linear updates |
 

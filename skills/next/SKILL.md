@@ -14,7 +14,7 @@ Optional filter: $ARGUMENTS (a project name or a label). Empty means no extra fi
 If the Linear tools are not callable, load them first with ToolSearch (query "linear").
 
 ## Process
-1. Read the Linear section of the project's `docs/engineering/CONVENTIONS.md` for the team key and project. If it is missing, stop and tell the owner.
+1. Read the Linear section of the project's `docs/engineering/CONVENTIONS.md` for the team key and project. If it is missing, stop and tell the owner to run `/pdk:setup`.
 2. List issues in that team (and project if set) with state `Todo`, ordered by priority, applying the filter.
 3. Drop issues that have a "blocked by" issue not in `In Review` or `Done`.
 4. Show the first one, max 8 lines: ID, title, priority, module, number of acceptance scenarios, dependencies. Add one line with the next two candidates (ID and title).

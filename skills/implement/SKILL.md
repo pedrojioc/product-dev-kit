@@ -20,7 +20,7 @@ If the Linear or codegraph tools are not callable, load them first with ToolSear
 - Never fall back to a grep-based exploration of the repo: structural questions go through codegraph or through `pdk:explorer`.
 
 ## 1. Load (keep it small)
-- Read the issue and its comments from Linear, and the project's `docs/engineering/CONVENTIONS.md` (commands, structure, Linear team). If CONVENTIONS.md is missing, stop and tell the owner to create it from `${CLAUDE_PLUGIN_ROOT}/templates/CONVENTIONS.md`.
+- Read the issue and its comments from Linear, and the project's `docs/engineering/CONVENTIONS.md` (commands, structure, Linear team). If CONVENTIONS.md is missing, stop and tell the owner to run `/pdk:setup`.
 - Do not read `docs/product` unless the issue references a rule you cannot find in the issue itself.
 
 ## 2. Gate

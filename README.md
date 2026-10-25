@@ -41,9 +41,11 @@ Then run `/mcp` in that project and authenticate `linear`.
 
 ## Per-project setup
 
-Each repository needs `docs/engineering/CONVENTIONS.md`, copied from `templates/CONVENTIONS.md`. It declares the stack, the test, lint and typecheck commands, the folder structure, and the Linear team key. Without it the Tech Lead skills stop.
+Run `/pdk:setup` once in each repository. It inspects the repo for the stack and the test, lint and typecheck commands, reads your Linear teams, asks only what it could not detect, and writes `docs/engineering/CONVENTIONS.md`. Every skill reads that file, and without it the Tech Lead stops.
 
-Linear: one team per product, because the issue ID prefix is the team identifier. Projects group issues inside a team but never change the prefix.
+The configuration is deliberately a file in your repository rather than answers to an install dialog. A plugin's `userConfig` values are stored per user, and Claude Code [ignores project and local entries](https://code.claude.com/docs/en/settings-reference#pluginconfigs) for them, so one answer would apply to every repository you work in. A Linear team key belongs to one product, not to a person.
+
+Linear: one team per product, because the issue ID prefix is the team identifier. Projects group issues inside a team but never change the prefix. `/pdk:setup` also reports whether that team has the five states and the three type labels pdk expects.
 
 ## Commands
 
@@ -52,6 +54,7 @@ Linear: one team per product, because the issue ID prefix is the team identifier
 | `/pdk:product-init` | PM | Interviews the owner one question at a time and writes `docs/product/` (index, modules, decisions log) |
 | `/pdk:product-ask <question>` | PM | Answers from the product docs, or proposes options and waits for the owner to decide |
 | `/pdk:req-create <need>` | PM | Splits a need into self-contained Linear issues, shown for approval before creation |
+| `/pdk:setup` | — | Configures pdk for this repository: writes `docs/engineering/CONVENTIONS.md` and checks the Linear team |
 | `/pdk:doctor` | — | Verifies the requirements of the current project and prints the fixes |
 | `/pdk:next [filter]` | Tech Lead | Shows the next unblocked `Todo` issue by priority and offers to implement it |
 | `/pdk:implement <ID>` | Tech Lead | Gate, design, task packets, delegation, verification, Linear updates |

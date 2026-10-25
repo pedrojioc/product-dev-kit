@@ -3,7 +3,6 @@
 # Usage: doctor.sh [project-dir]   (defaults to the current directory)
 set -uo pipefail
 
-PLUGIN_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROJECT="${1:-$PWD}"
 cd "$PROJECT" || { echo "pdk doctor: cannot enter $PROJECT"; exit 2; }
 
@@ -91,7 +90,7 @@ if [ -f "$conv" ]; then
     ok "CONVENTIONS.md" "present and filled in"
   fi
 else
-  fail "CONVENTIONS.md" "$conv missing" "mkdir -p docs/engineering && cp \"$PLUGIN_ROOT/templates/CONVENTIONS.md\" $conv"
+  fail "CONVENTIONS.md" "$conv missing" "/pdk:setup  (interviews you and writes it)"
 fi
 
 # 6. product source of truth (only the PM flows need it)

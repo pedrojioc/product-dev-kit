@@ -10,6 +10,7 @@ This file overrides the generic pdk conventions when they conflict.
 - Test: `{command}`
 - Lint: `{command}`
 - Typecheck: `{command}`
+- CodeGraph index: `codegraph init` (required once per checkout; each worktree needs its own `.codegraph/`)
 
 ## Structure
 {Folder layout per module and layer, e.g. src/{module}/{domain,application,infrastructure}}

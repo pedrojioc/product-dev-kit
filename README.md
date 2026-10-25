@@ -9,14 +9,30 @@ Two responsibilities, kept apart on purpose:
 
 The owner always decides. The PM proposes options with tradeoffs; it never invents a business rule. Agents stop at `In Review`: marking an issue `Done` and merging stay human decisions.
 
+## Requirements
+
+- **CodeGraph**, installed and indexed in every repository that uses pdk. It is a hard dependency, not an optimization: the Tech Lead and `pdk:explorer` answer structural questions from the index instead of sweeping the repo with grep, and that is where most of the token saving comes from. The plugin ships the server in `.mcp.json`; the `codegraph` binary must be on `PATH`, and the repo needs its own `.codegraph/` index:
+
+  ```bash
+  cd /path/to/repo && codegraph init
+  ```
+
+  Without an index the Tech Lead stops at preflight and `pdk:explorer` reports `Blocked` rather than falling back to grep.
+- A **Linear** workspace, one team per product. The plugin ships the Linear MCP server too.
+
 ## Install
 
+pdk is meant to be installed **per project**, so a repository that does not use this workflow does not pay for its context:
+
 ```bash
-claude plugin marketplace add /path/to/product-dev-kit
-claude plugin install pdk@pdk-local
+cd /path/to/repo
+claude plugin marketplace add /path/to/product-dev-kit --scope local
+claude plugin install pdk@pdk-local --scope local
 ```
 
-Then run `/mcp` and authenticate `linear`. The plugin ships the Linear MCP server in `.mcp.json`.
+`--scope local` writes to the repo's `.claude/settings.local.json` (personal, gitignored). Use `--scope project` instead to commit the choice in `.claude/settings.json` and share it with the team; in that case the marketplace must be a git URL, because a local path only resolves on one machine. Drop the flag to install for every project at once (`--scope user`, the default).
+
+Then run `/mcp` in that project and authenticate `linear`.
 
 ## Per-project setup
 
@@ -48,6 +64,7 @@ Context is packaged once and reused, instead of being re-read by every worker:
 
 - The PM copies the business rules and glossary into each issue, so it is implementable on its own.
 - The Tech Lead writes one task packet per work unit with only the conventions lines that unit needs. An implementer never reads the issue or the product docs.
+- Structural questions go through the CodeGraph index, never through a grep sweep: one indexed query replaces dozens of reads.
 - Subagents answer in fixed, capped formats and start without the user's global `CLAUDE.md`.
 - Models match the work: the Tech Lead thinks, the workers execute.
 - `skills/engineering-conventions/` is an index; each reference loads only when it is needed.

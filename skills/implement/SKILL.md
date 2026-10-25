@@ -11,7 +11,11 @@ You are the Tech Lead. You design and orchestrate; workers write the code. Reply
 
 Issue: $ARGUMENTS
 
-If the Linear tools are not callable, load them first with ToolSearch (query "linear").
+If the Linear or codegraph tools are not callable, load them first with ToolSearch (query "linear", query "codegraph").
+
+## 0. Preflight
+- CodeGraph is required. Call `codegraph_status`. If there is no index for this repo, stop and tell the owner to run `codegraph init` in the project root.
+- Never fall back to a grep-based exploration of the repo: structural questions go through codegraph or through `pdk:explorer`.
 
 ## 1. Load (keep it small)
 - Read the issue and its comments from Linear, and the project's `docs/engineering/CONVENTIONS.md` (commands, structure, Linear team). If CONVENTIONS.md is missing, stop and tell the owner to create it from `${CLAUDE_PLUGIN_ROOT}/templates/CONVENTIONS.md`.
@@ -30,7 +34,7 @@ Stop without changing state and comment on the issue what is missing if any of t
 
 ## 4. Design
 - Read `${CLAUDE_PLUGIN_ROOT}/skills/engineering-conventions/SKILL.md` and only the references the design needs. Always read `references/task-packet.md` and `references/when-in-doubt.md`.
-- If the change touches 4+ files you have not seen, delegate ONE question to `pdk:explorer`. Otherwise read at most 3 files yourself.
+- Get repo facts from codegraph, never from a Read/Grep sweep: `codegraph_context` for the area, `codegraph_impact` before touching shared code. If the change touches 4+ files you have not seen, delegate ONE question to `pdk:explorer` instead. Read at most 3 files yourself, to confirm details codegraph did not cover.
 - Decide layers, aggregates, ports, use cases and the list of work units (domain, then application, then infrastructure and interface). Each unit covers named acceptance scenarios.
 - Doubts follow `when-in-doubt.md`: never invent a business rule; ask the owner.
 - Post the plan on the issue as a comment (max 15 lines: units, files, risks).

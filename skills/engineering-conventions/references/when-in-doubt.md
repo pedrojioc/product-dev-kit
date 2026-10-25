@@ -10,7 +10,7 @@ Never guess. Pick the branch below and stop at the first that resolves the doubt
 ## Technical doubt (structure, naming, library, pattern)
 1. Project `docs/engineering/CONVENTIONS.md`.
 2. These references.
-3. Existing repo patterns: find the closest similar feature and mirror it.
+3. Existing repo patterns: find the closest similar feature with codegraph (`codegraph_context`, then `codegraph_explore`) and mirror it. Never answer a structural question with a grep sweep.
 4. Still open: propose exactly 2 options with tradeoffs (cost, risk, reversibility), recommend one, and ask the owner. Do not proceed on the open point until answered.
 
 ## Scope change

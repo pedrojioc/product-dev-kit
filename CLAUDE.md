@@ -26,10 +26,57 @@ product or code.
 ## Decisions and their reasons
 
 **Context packaging is the whole design.** The PM copies business rules and
-glossary into each issue; the Tech Lead writes one task packet per work unit with
-only the conventions lines that unit needs. An implementer never reads the Linear
-issue or `docs/product`. Workers answer in fixed, capped formats and run with
-`omitClaudeMd: true`. Conventions are an index plus references loaded on demand.
+glossary into each issue. The Tech Lead writes one task packet per work unit, but it
+*selects* rules instead of transcribing them: the packet's `Required reading` carries
+absolute paths (project `CONVENTIONS.md`, the references for the layers that unit
+touches, the nearest file to mirror) and the implementer reads them before its first
+test. An implementer never reads the Linear issue or `docs/product` — product context
+stays packaged, architecture rules do not. Workers answer in fixed, capped formats and
+run with `omitClaudeMd: true`. Conventions are an index plus references loaded on demand.
+
+**Architecture rules reach the implementer by path, not by transcription.** Copying
+them by hand made the Tech Lead (opus, high) a photocopier, silently lost whatever it
+failed to predict at design time, and left the references inert: editing
+`domain-design.md` changed no generated code. The test that settles it is "if I edit a
+reference, does tomorrow's code change?" — now yes, for every packet of that layer. The
+risk this opens, a worker that feels entitled to decide because it can see the whole
+architecture, is held by one rule repeated in the packet and in `implementer.md`: the
+references say HOW to write what the packet names, never what to add. Rejected
+alternative: one implementer per layer. The process is identical across layers
+(red-green-refactor, allowed files, one commit, one response format) and only the rules
+differ — different knowledge is a file, not an agent. It would also force single-layer
+packets, and real units span layers (a use case plus the VO it builds).
+
+The same split governs `references/decision-gates.md`: WHICH pattern to reach for (Criteria
+vs a repository lookup, a policy vs an `if` chain, a query service vs the repository, a
+subscriber vs a second save) is a design decision, so the gates are Tech Lead reading at
+design time and never travel in a packet. The references are cut by topic, not by layer, so
+no single file is "the application layer"; `SKILL.md` carries a per-layer table naming the
+complete set, and `hexagonal.md` ships in every packet because all four layers need its
+layout, dependency and port rules. `references/module-blueprint.md` is the same kind of
+Tech-Lead-only reading for the other design question: WHAT units a module is cut into and in
+what order.
+
+**Three formats were borrowed from the `hexagonal-architect` lab repo**
+(`~/Projects/Lab/hexagonal-architect`): gate tables, per-layer output contracts, and a
+rationale that separates sourced rules from our own. Its RULES were not imported, and four of
+them contradict pdk deliberately: Nest decorators on core classes (the lab allows
+`@Injectable()` there, pdk forbids every `@nestjs/*` import in the core and registers use
+cases with `useFactory` so they never need one, which keeps the rule enforceable by grep),
+who throws `NotFoundException`, VO file placement, and whether a cross-context mechanism is
+needed at all. `references/rationale.md` records which rules carry an authority (Cockburn,
+Evans, Vernon, Fowler, MS Learn, the NestJS docs) and which are ours to change freely; the
+citations live verified in the lab repo and are reproduced, not re-verified, here.
+
+**Mechanical guardrails beat prose.** Six rules a worker can break silently (no
+cross-context import, `shared/` independent of every context, the core free of frameworks
+and of adapter layers, no sibling module's `domain/` imported directly, no spec under
+`src/`) ship as `templates/architecture.spec.ts`: dependency-free, no runner lock-in,
+verified against a fixture carrying one planted violation per rule plus a clean tree that
+must pass. `/pdk:setup` offers it as one question and installs it only on a yes, because it
+is code in the owner's repo; `/pdk:doctor` warns when no `tests/architecture.spec.ts`
+exists; `pdk:verifier` treats a failure there as a blocker naming the broken rule, never a
+flaky test. This is the only file besides `CONVENTIONS.md` that `/pdk:setup` writes.
 
 **Every skill sets `disable-model-invocation: true`.** They run only as slash
 commands, so their descriptions never enter auto-match context and nothing fires
@@ -89,6 +136,7 @@ scoped to `pdk:explorer`, to adopt only if it measurably saves more than 15%.
 
 ```bash
 claude plugin validate .                                  # authoritative check
+claude plugin eval . --scaffold --allow-tools Write,Edit,Bash   # billed model runs
 claude --plugin-dir /Users/pedro/Projects/product-dev-kit  # load it for one session
 claude plugin update pdk@pdk                              # third-party auto-update is OFF
 ```
@@ -112,7 +160,18 @@ this repo is the project you are working in, which is its purpose here.
   default workflow, so check their states against the five above. Existing `GRU`
   issues stay as they are.
 - **End-to-end test, never run yet**: `/pdk:setup` in `granular`, then
-  `product-init`, `req-create`, `next`, `implement`, plus the two negative cases —
-  an issue with open questions must not be implemented, and the PM must refuse to
-  edit code.
+  `product-init`, `req-create`, `next`, `implement`. This stays manual: the whole
+  flow needs Linear, codegraph and a real repo, which is an integration test, not
+  an eval.
+- **`evals/` covers only what runs without Linear**: the PM refusing to write code,
+  `product-ask` refusing to invent an undocumented rule, and `doctor` reporting
+  without repairing. Each case carries its own `files/` fixture and `place-files.sh`,
+  in the layout `claude plugin eval` reads. Never run yet — they are billed model
+  runs, so the owner decides when.
+- **`evals-linear/` is the opt-in group**: the `implement` gate refusing an issue with
+  open questions, which needs the real Linear MCP server. It lives in its own eval dir
+  because a tag does not exclude a case — `--tag` filters, and a run without it takes
+  every case in the dir — while `claude plugin eval .` reads `evals/` only. Its cases
+  are also tagged `linear`, and `evals-linear/README.md` carries the one-time Linear
+  fixture (team `HEX`, issue `HEX-7`) plus the command. Never run yet.
 - **Post-v1**: the measured fff experiment described above.

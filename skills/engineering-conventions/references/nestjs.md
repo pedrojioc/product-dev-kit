@@ -30,3 +30,22 @@ Framework mechanics for the layout in `hexagonal.md`. Core classes (domain, appl
 
 ## ESM and scripts
 `type: module`, `moduleResolution: NodeNext`: every relative import ends in `.js`. Scripts: `build` (tsc), `test`, `lint`. E2E uses Testcontainers Postgres (testing.md). Run all three before committing: ts-jest does not type-check.
+
+## Canonical shape
+```ts
+// animal.module.ts — the only place adapters bind to ports
+@Module({
+  controllers: [AnimalController],
+  providers: [
+    { provide: AnimalRepository, useClass: InMemoryAnimalRepository },
+    {
+      provide: RegisterAnimal,
+      useFactory: (animals: AnimalRepository, ids: IdGenerator, clock: Clock) =>
+        new RegisterAnimal(animals, ids, clock),
+      inject: [AnimalRepository, IdGenerator, Clock],
+    },
+  ],
+  exports: [RegisterAnimal],
+})
+export class AnimalModule {}
+```

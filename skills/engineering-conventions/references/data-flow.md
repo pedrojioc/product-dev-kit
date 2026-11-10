@@ -28,3 +28,23 @@ Rule: nothing typed by an inner layer leaves it. Domain objects never cross the 
 ## Persistence (driven adapter)
 - Repository adapter maps aggregate <-> storage row inside `infrastructure/`; the row type never leaves it. Query services map rows straight to read-model DTOs with no aggregate restore.
 - Only the repository rebuilds aggregates from rows, through `Aggregate.restore(props)` (domain-design.md).
+
+## Canonical shape
+```ts
+// application/animal-summary.ts — flat primitives, no VO, no aggregate
+export interface AnimalSummary { id: string; tag: string; status: string }
+
+export function toAnimalSummary(animal: Animal): AnimalSummary {
+  return { id: animal.id.value, tag: animal.tag.value, status: animal.status }
+}
+// interface/http/register-animal.request.ts — wire validation only
+export class RegisterAnimalRequest {
+  @IsString() @Matches(/^[A-Z]{2}\d{4}$/) tag!: string
+  @IsISO8601() occurredOn!: string
+}
+// interface/http/animal.controller.ts — maps request -> input, returns the summary unchanged
+@Post()
+async register(@Body() body: RegisterAnimalRequest): Promise<AnimalSummary> {
+  return this.registerAnimal.run({ tag: body.tag, occurredOn: new Date(body.occurredOn) })
+}
+```

@@ -68,7 +68,7 @@ Linear: one team per product, because the issue ID prefix is the team identifier
 
 | Command | Role | What it does |
 |---|---|---|
-| `/pdk:product-init` | PM | Interviews the owner one question at a time and writes `docs/product/` (index, modules, decisions log) |
+| `/pdk:product-init [paths]` | PM | Writes `docs/product/` (index, modules, decisions log). In a project with existing Markdown docs it adopts them first: extracts candidates with their `path:line`, has the owner confirm each module, then interviews only the gaps |
 | `/pdk:product-ask <question>` | PM | Answers from the product docs, or proposes options and waits for the owner to decide |
 | `/pdk:req-create <need>` | PM | Splits a need into self-contained issues, shown for approval before creation |
 | `/pdk:setup` | — | Configures pdk for this repository: writes `docs/engineering/CONVENTIONS.md`, offers the architecture guardrail, and checks the tracker |

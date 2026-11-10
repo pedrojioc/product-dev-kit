@@ -1,7 +1,7 @@
 # Git workflow
 
 ## Branch
-- Branch name = the Linear issue's `gitBranchName` verbatim (e.g. `<assignee>/abc-12-add-login`). Never invent one.
+- Branch name = the issue's `branch` field verbatim (Linear: its `gitBranchName`, e.g. `<assignee>/abc-12-add-login`). Never invent one.
 - Branch from the project's default integration branch. One issue = one branch = one PR.
 
 ## Commits

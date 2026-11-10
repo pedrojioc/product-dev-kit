@@ -93,6 +93,22 @@ else
   fail "CONVENTIONS.md" "$conv missing" "/pdk:setup  (interviews you and writes it)"
 fi
 
+# 5b. issue tracker (the port is tracker/port.md in the plugin)
+if [ -f "$conv" ]; then
+  backend=$(grep -m1 -o 'Backend: `[a-z]*`' "$conv" | sed 's/.*`\(.*\)`/\1/')
+  # a file written before the tracker port has a Linear section and no Backend line
+  [ -z "$backend" ] && grep -q '^## Linear' "$conv" && backend=linear
+  case "${backend:-}" in
+    files)
+      n=$(ls docs/work/*.md 2>/dev/null | wc -l | tr -d ' ')
+      ok "tracker" "files, $n issues in docs/work/" ;;
+    linear)
+      ok "tracker" "linear (the MCP login is checked by /pdk:doctor)" ;;
+    *)
+      fail "tracker" "no Backend line in the Tracker section of $conv" "/pdk:setup  (files is the default)" ;;
+  esac
+fi
+
 # 6. architecture guardrail (the only mechanical check of the dependency rule)
 spec=$(find . -name node_modules -prune -o -path '*/tests/architecture.spec.ts' -print 2>/dev/null | head -1)
 if [ -n "$spec" ]; then

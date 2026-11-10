@@ -38,4 +38,4 @@ layer". A layer is complete only as this set:
 Tech Lead: SELECT which of these each task packet needs and pass their absolute paths
 under the packet's `Required reading`. Do not transcribe their content.
 Implementers read the references their packet points at; they never read this index,
-the Linear issue or `docs/product`.
+the issue or `docs/product`.

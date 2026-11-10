@@ -19,6 +19,23 @@ Read only the references your situation needs.
 | Branches, commits, stacked PRs | `${CLAUDE_SKILL_DIR}/references/git-workflow.md` |
 | Any doubt: product, technical, or scope | `${CLAUDE_SKILL_DIR}/references/when-in-doubt.md` |
 | Tech Lead delegating work to an implementer | `${CLAUDE_SKILL_DIR}/references/task-packet.md` |
+| WHICH pattern to reach for (design time, Tech Lead only) | `${CLAUDE_SKILL_DIR}/references/decision-gates.md` |
+| WHAT units a module is cut into, and their order (Tech Lead only) | `${CLAUDE_SKILL_DIR}/references/module-blueprint.md` |
+| Before CHANGING a rule: what has authority vs what is ours | `${CLAUDE_SKILL_DIR}/references/rationale.md` |
 
-Tech Lead: excerpt only the relevant lines of these references into each task packet.
-Implementers receive packets, not this skill.
+## By layer
+These references are cut by topic, not by layer, so no single file is "the application
+layer". A layer is complete only as this set:
+
+| Layer | Complete set |
+|---|---|
+| domain | `domain-design.md` |
+| application | `use-cases.md` + `data-flow.md` (summary, mappers) |
+| infrastructure | `nestjs.md` (persistence, wiring) + `data-flow.md` (the row never leaves) |
+| interface | `nestjs.md` (controllers, filter) + `data-flow.md` (request DTO -> input) |
+| every layer | `hexagonal.md` (layout, dependency rule, ports, naming) + `testing.md` + `solid.md` |
+
+Tech Lead: SELECT which of these each task packet needs and pass their absolute paths
+under the packet's `Required reading`. Do not transcribe their content.
+Implementers read the references their packet points at; they never read this index,
+the Linear issue or `docs/product`.

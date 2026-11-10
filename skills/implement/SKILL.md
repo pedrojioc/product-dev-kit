@@ -35,19 +35,38 @@ Stop without changing state and comment on the issue what is missing if any of t
 - Set the issue to `In Progress`, assign it to the owner, create the branch named by the issue's `gitBranchName`.
 
 ## 4. Design
-- Read `${CLAUDE_PLUGIN_ROOT}/skills/engineering-conventions/SKILL.md` and only the references the design needs. Always read `references/task-packet.md` and `references/when-in-doubt.md`.
+- Read `${CLAUDE_PLUGIN_ROOT}/skills/engineering-conventions/SKILL.md` and only the references the design needs. Always read `references/task-packet.md`, `references/when-in-doubt.md`, `references/decision-gates.md` and `references/module-blueprint.md`: the gates decide WHICH pattern this design uses and the blueprint decides WHAT units it is cut into and in what order. Both choices are yours, never the implementer's.
 - Get repo facts from codegraph, never from a Read/Grep sweep: `codegraph_context` for the area, `codegraph_impact` before touching shared code. If the change touches 4+ files you have not seen, delegate ONE question to `pdk:explorer` instead. Read at most 3 files yourself, to confirm details codegraph did not cover.
-- Decide layers, aggregates, ports, use cases and the list of work units (domain, then application, then infrastructure and interface). Each unit covers named acceptance scenarios.
+- Decide layers, aggregates, ports, use cases and the list of work units, cut and ordered per `module-blueprint.md`. Each unit covers named acceptance scenarios.
 - Doubts follow `when-in-doubt.md`: never invent a business rule; ask the owner.
 - Post the plan on the issue as a comment (max 15 lines: units, files, risks).
 
 ## 5. Delegate
-- Write one task packet per unit, exactly in the `task-packet.md` format, with only the convention lines that unit needs.
+- Write one task packet per unit, exactly in the `task-packet.md` format. You SELECT the rules, you do not transcribe them: `Required reading` carries absolute paths, and `Conventions excerpt` carries only that unit's deviations plus the 3-5 rules most often broken in it.
+- Every packet's `Required reading` lists the project's `docs/engineering/CONVENTIONS.md`, the references for every layer the unit touches (table below), and the `Pattern to mirror` path from codegraph or `pdk:explorer`. Never discard that path: the nearest real file beats any document.
+
+| Layer the unit touches | Add to Required reading |
+|---|---|
+| domain | `domain-design.md` |
+| application | `use-cases.md`, `data-flow.md` |
+| infrastructure | `nestjs.md`, `data-flow.md` |
+| interface | `nestjs.md`, `data-flow.md` |
+| every packet | `hexagonal.md`, `testing.md`, `solid.md` |
+
+`hexagonal.md` goes in every packet: it carries the layout, the dependency rule, the port
+rules and the naming rules, and all four layers need them.
+- Add the layer's self-check to the packet's `Done when`, so the implementer has to report it:
+  - domain: VOs and aggregate methods touched, which exception subclass and why, which events recorded; nothing imported from application, infrastructure, interface or any framework.
+  - application: exactly one repository save; whether a query service was added and what justified the read shape; events published only after the save; the returned summary carries no VO or aggregate.
+  - infrastructure: which port it implements; the row or schema type never left the layer; no business rule added.
+  - interface: no domain type imported; exactly one use case call; the summary returned unchanged.
+
+- Write them as absolute paths under `${CLAUDE_PLUGIN_ROOT}/skills/engineering-conventions/references/`, with the variable already resolved to a real path. A subagent cannot expand it.
 - Run units sequentially with `pdk:implementer`, one packet each. A unit that is one trivial file with no design, you do yourself.
 - Read only the implementer's short response. If it returns doubts, resolve them (owner if product) and re-issue an amended packet. Do not read its diff yet.
 
 ## 6. Verify
-- Call `pdk:verifier` once with: the Gherkin scenarios, the diff range (branch point..HEAD), the allowed files of every packet, the conventions excerpt, and the test, lint and typecheck commands from CONVENTIONS.md.
+- Call `pdk:verifier` once with: the Gherkin scenarios, the diff range (branch point..HEAD), the allowed files of every packet, the `Required reading` paths and conventions excerpt of every packet, and the test, lint and typecheck commands from CONVENTIONS.md.
 - On FAIL: one correction round (new packets for the findings, then the verifier again). If it still fails, comment the findings on the issue and ask the owner.
 
 ## 7. Close

@@ -4,7 +4,7 @@ The only context an implementer gets. The Tech Lead writes one per work unit,
 self-contained and minimal. Worked example: `task-packet-example.md`.
 
 ## Rules
-- Implementer must NOT read the full Linear issue or `docs/product`. If the packet is insufficient, return a doubt (see when-in-doubt).
+- Implementer must NOT read the full issue (tracker or `docs/work/`) or `docs/product`. If the packet is insufficient, return a doubt (see when-in-doubt).
 - `Required reading` carries the HOW, as absolute paths and never as transcribed text: the project's `CONVENTIONS.md`, the layer references this unit touches, and the nearest existing file to mirror. The implementer reads all of it before the first test.
 - `Conventions excerpt` is NOT the transport for conventions any more. It holds only this unit's deviations plus the 3-5 rules most often broken here. Do not retype what `Required reading` already points at.
 - Precedence, restated in every packet: this packet's signatures > project `CONVENTIONS.md` > the generic references.

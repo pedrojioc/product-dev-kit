@@ -8,7 +8,7 @@
     {
       "name": "pdk",
       "source": "./",
-      "description": "Product manager and tech lead workflow on Linear."
+      "description": "Product manager and tech lead workflow over Markdown issues or Linear."
     }
   ]
 }

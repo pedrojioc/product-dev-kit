@@ -10,8 +10,8 @@ so a decision already settled is not reopened or quietly reversed.
 Two halves, kept apart on purpose:
 
 - **WHAT** — PM skills (`product-init`, `product-ask`, `req-create`). They own the
-  product source of truth under `docs/product/` and write self-contained Linear
-  issues. They never write code.
+  product source of truth under `docs/product/` and write self-contained
+  issues into the tracker. They never write code.
 - **HOW** — Tech Lead skills (`implement`, `next`) plus three workers
   (`explorer`, `implementer`, `verifier`).
 
@@ -30,7 +30,7 @@ glossary into each issue. The Tech Lead writes one task packet per work unit, bu
 *selects* rules instead of transcribing them: the packet's `Required reading` carries
 absolute paths (project `CONVENTIONS.md`, the references for the layers that unit
 touches, the nearest file to mirror) and the implementer reads them before its first
-test. An implementer never reads the Linear issue or `docs/product` — product context
+test. An implementer never reads the issue or `docs/product` — product context
 stays packaged, architecture rules do not. Workers answer in fixed, capped formats and
 run with `omitClaudeMd: true`. Conventions are an index plus references loaded on demand.
 
@@ -82,6 +82,18 @@ flaky test. This is the only file besides `CONVENTIONS.md` that `/pdk:setup` wri
 commands, so their descriptions never enter auto-match context and nothing fires
 on its own.
 
+**The tracker is a port; Markdown files are the default, Linear an adapter.**
+`tracker/port.md` names five operations (create, get, list, transition, log) and one
+issue model; `tracker/files.md` and `tracker/linear.md` implement them, and
+`CONVENTIONS.md` (`## Tracker`, `Backend:`) picks one. A file written before the port,
+with a `## Linear` section, counts as `linear`. SQLite was rejected as the default: it
+needs an MCP server (schemas in every session, the reason CodeGraph is not shipped) or
+the `sqlite3` CLI (absent on Windows), and a binary `.db` cannot be reviewed or merged.
+With `files`, the issue file travels on the issue's branch, so status reaches the
+default branch with the code; the *effective status* is read from the issue's branch
+when it exists, which keeps `next` from offering work already started. Issues are
+created only on the default branch, so IDs (highest + 1) never collide.
+
 **The Linear MCP server ships in `.mcp.json`.** It has to: plugin subagents ignore
 an `mcpServers` key in their own frontmatter.
 
@@ -100,18 +112,18 @@ grep sweep.
 **Per-project configuration is a file in the repo, never install-time prompts.**
 `userConfig` exists and would prompt on install, but `pluginConfigs` has scope
 `User or managed` and Claude Code ignores project and local entries, so one answer
-would apply to every repository. A Linear team key belongs to a product, not to a
-person. `/pdk:setup` detects what the repo can answer, asks the rest one question
+would apply to every repository. A tracker and its issue prefix belong to a product,
+not to a person. `/pdk:setup` detects what the repo can answer, asks the rest one question
 at a time, and writes `docs/engineering/CONVENTIONS.md`, which overrides everything
 the plugin ships.
 
-**Linear: one team per product.** The issue ID prefix is the *team* identifier
+**Linear (when chosen): one team per product.** The issue ID prefix is the *team* identifier
 (Team settings > General > Identifier), not the project. Projects group issues
 inside a team and never change the prefix. States are
 Backlog → Todo → In Progress → In Review → Done, with no Blocked state: a blocked
 issue stays in Todo with a relation and a comment.
 
-**Agents stop at `In Review`.** Marking an issue `Done`, merging and pushing stay
+**Agents stop at `in-review`.** Marking an issue `done`, merging and pushing stay
 human decisions.
 
 **The PM proposes, the owner decides.** It never invents a business rule, a

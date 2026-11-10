@@ -13,8 +13,6 @@ Reply to the owner in their language. Write files in English.
 
 Question: $ARGUMENTS
 
-If you need Linear and its tools are not callable, load them first with ToolSearch (query "linear").
-
 ## Process
 
 1. Read `docs/product/INDEX.md`, then ONLY the module files relevant to the question.
@@ -23,7 +21,7 @@ If you need Linear and its tools are not callable, load them first with ToolSear
 4. Once the owner decides:
    - Update the affected module file (rule or open question).
    - Append the decision to `docs/product/DECISIONS.md` using the existing format.
-   - If the question came from a Linear issue, add a comment on that issue with the decision.
+   - If the question came from an issue, `log` the decision on it through the tracker port (`${CLAUDE_PLUGIN_ROOT}/tracker/port.md` and the adapter named in the project's `docs/engineering/CONVENTIONS.md`).
 
 ## Rules
 

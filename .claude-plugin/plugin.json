@@ -1,7 +1,7 @@
 {
   "name": "pdk",
   "displayName": "Product Dev Kit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Product manager and tech lead workflow over a pluggable issue tracker (Markdown files or Linear): product source of truth, self-contained requirements, and orchestrated implementation with specialized subagents.",
   "author": {
     "name": "Pedro J",

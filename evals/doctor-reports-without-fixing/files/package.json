@@ -1,0 +1,6 @@
+{
+  "name": "hexa-academy",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "vitest run", "lint": "eslint .", "typecheck": "tsc --noEmit" }
+}

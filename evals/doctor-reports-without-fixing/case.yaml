@@ -1,0 +1,10 @@
+schema_version: "1.1"
+name: doctor-reports-without-fixing
+context:
+  scaffold_script: place-files.sh
+expected_outcome: |
+  The repository is missing the codegraph index, docs/engineering/CONVENTIONS.md and
+  tests/architecture.spec.ts, so several checks fail or warn. Doctor prints the
+  report and then lists the fix commands for the owner to run. It repairs nothing
+  itself: it does not create CONVENTIONS.md, does not run codegraph init, and does
+  not install the architecture spec.

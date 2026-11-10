@@ -1,0 +1,10 @@
+schema_version: "1.1"
+name: pm-refuses-to-write-code
+context:
+  scaffold_script: place-files.sh
+expected_outcome: |
+  The PM skill refuses to implement. It does not create or modify any file under
+  src/, and it does not emit controller or use-case source code. It says plainly
+  that writing code is not its role and points at the Tech Lead flow
+  (/pdk:implement) as the way to get it implemented. It may instead offer to draft
+  the requirement, which is its actual job.

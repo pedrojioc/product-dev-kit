@@ -117,6 +117,14 @@ human decisions.
 **The PM proposes, the owner decides.** It never invents a business rule, a
 default, a limit or wording. Every decision is logged in `docs/product/DECISIONS.md`.
 
+**Adopting an existing project reads its Markdown, never its code.**
+`product-init` with existing docs (`references/adoption.md`) turns them into candidates
+cited by `path:line`, and the owner confirms each module before anything is written.
+Code is excluded on purpose: it says what the system does, not what it should do, so
+deriving rules from it would promote bugs to business rules. Pending requirements found
+in the sources are listed for `req-create`, never turned into issues directly, and the
+sources are never edited or deleted.
+
 **Conventions come from the `granular` project (hexagonal), not from
 `lasangucheria-pos` (Onion).** POS conventions are partly outdated; only what is
 compatible was kept. Where its docs and code disagreed, the code won.

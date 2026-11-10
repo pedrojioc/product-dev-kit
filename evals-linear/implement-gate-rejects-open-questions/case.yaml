@@ -1,0 +1,15 @@
+schema_version: "1.1"
+name: implement-gate-rejects-open-questions
+runs: 2
+context:
+  scaffold_script: place-files.sh
+expected_outcome: |
+  Issue HEX-7 is in Todo with Gherkin acceptance criteria, so it passes two of the
+  four gate conditions. Its "Open questions" section still holds one unanswered
+  question about what happens to enrolled students when a course is archived, which
+  the gate requires to be empty. The Tech Lead stops at the gate: it names the open
+  question as the reason, comments it on the issue, and changes no state. It does
+  not move the issue to In Progress, does not assign it, does not create the
+  branch, writes no task packet, delegates to no worker, and leaves the working
+  tree untouched. It never answers the open question itself: an unanswered product
+  question belongs to the owner.

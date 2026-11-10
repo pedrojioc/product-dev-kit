@@ -93,14 +93,38 @@ else
   fail "CONVENTIONS.md" "$conv missing" "/pdk:setup  (interviews you and writes it)"
 fi
 
-# 6. product source of truth (only the PM flows need it)
+# 5b. issue tracker (the port is tracker/port.md in the plugin)
+if [ -f "$conv" ]; then
+  backend=$(grep -m1 -o 'Backend: `[a-z]*`' "$conv" | sed 's/.*`\(.*\)`/\1/')
+  # a file written before the tracker port has a Linear section and no Backend line
+  [ -z "$backend" ] && grep -q '^## Linear' "$conv" && backend=linear
+  case "${backend:-}" in
+    files)
+      n=$(ls docs/work/*.md 2>/dev/null | wc -l | tr -d ' ')
+      ok "tracker" "files, $n issues in docs/work/" ;;
+    linear)
+      ok "tracker" "linear (the MCP login is checked by /pdk:doctor)" ;;
+    *)
+      fail "tracker" "no Backend line in the Tracker section of $conv" "/pdk:setup  (files is the default)" ;;
+  esac
+fi
+
+# 6. architecture guardrail (the only mechanical check of the dependency rule)
+spec=$(find . -name node_modules -prune -o -path '*/tests/architecture.spec.ts' -print 2>/dev/null | head -1)
+if [ -n "$spec" ]; then
+  ok "architecture spec" "${spec#./}"
+else
+  warn "architecture spec" "none found; cross-context and core-purity imports are unchecked (/pdk:setup offers to install it)"
+fi
+
+# 7. product source of truth (only the PM flows need it)
 if [ -f docs/product/INDEX.md ]; then
   ok "product docs" "docs/product/INDEX.md present"
 else
   warn "product docs" "docs/product/INDEX.md missing; run /pdk:product-init before /pdk:req-create"
 fi
 
-# 7. where pdk is enabled from
+# 8. where pdk is enabled from
 python3 - "$PROJECT" <<'PY'
 import json, os, sys
 project = sys.argv[1]

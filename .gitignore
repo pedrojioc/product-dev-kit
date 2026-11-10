@@ -1,0 +1,3 @@
+# claude plugin eval writes its reports and scaffold leftovers here
+evals/results/
+evals-linear/results/

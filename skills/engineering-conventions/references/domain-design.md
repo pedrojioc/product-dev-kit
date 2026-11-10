@@ -33,3 +33,38 @@
 
 ## Append-only history
 Recorded facts are immutable: closed cycles and records are kept as immutable VOs; corrections exist only if a spec adds them.
+
+## Canonical shape
+```ts
+// domain/animal-tag.ts — single-value VO: public ctor validates, then super
+export class AnimalTag extends StringValueObject {
+  constructor(value: string) {
+    if (!/^[A-Z]{2}\d{4}$/.test(value)) throw new InvalidValueObjectException(`Invalid tag ${value}`)
+    super(value)
+  }
+}
+// domain/animal.ts — aggregate root
+export class Animal extends AggregateRoot {
+  private constructor(
+    readonly id: AnimalId,
+    private _tag: AnimalTag,
+    private _status: AnimalStatus,
+  ) { super() }
+  static register(props: { id: AnimalId; tag: AnimalTag; occurredOn: Date }): Animal {
+    const animal = new Animal(props.id, props.tag, 'active')
+    animal.record(new AnimalRegistered(props.id, props.occurredOn))
+    return animal
+  }
+  // repository only: no transition checks, no events
+  static restore(props: { id: AnimalId; tag: AnimalTag; status: AnimalStatus }): Animal {
+    return new Animal(props.id, props.tag, props.status)
+  }
+  get tag(): AnimalTag { return this._tag }
+  get status(): AnimalStatus { return this._status }
+  exit(reason: ExitReason, occurredOn: Date): void {
+    if (this._status !== 'active') throw new BusinessRuleViolationException(`Animal ${this.id.value} already exited`)
+    this._status = 'exited'
+    this.record(new AnimalExited(this.id, reason, occurredOn))
+  }
+}
+```

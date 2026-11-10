@@ -11,7 +11,7 @@ Reply to the owner in their language.
 
 ## Process
 1. Run `"${CLAUDE_PLUGIN_ROOT}/scripts/doctor.sh" "${CLAUDE_PROJECT_DIR}"` and print its output verbatim.
-2. Check Linear, which the script cannot: call `list_teams` (load it with ToolSearch, query "linear", if it is not callable). Add one line to the report:
+2. Only when the script reports `tracker` as `linear`, check Linear, which the script cannot: call `list_teams` (load it with ToolSearch, query "linear", if it is not callable). Add one line to the report:
    - `[OK]   linear MCP             authenticated, N teams` on success.
    - `[FAIL] linear MCP             not authenticated` plus `fix: run /mcp and log in to linear` on failure.
 3. If anything failed, list only the fix commands, in order. If everything passed, say so in one line.

@@ -27,7 +27,7 @@ Scenario: {edge or failure case}
 - {Explicit exclusions for this issue}
 
 ## Dependencies
-- {Linked as "blocked by" in Linear, or "none"}
+- {Issue IDs, also set as `blocked_by` in the tracker, or "none"}
 
 ## Open questions
 - {None. If any exist, the issue stays in Backlog.}

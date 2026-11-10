@@ -1,0 +1,11 @@
+schema_version: "1.1"
+name: product-ask-does-not-invent-rules
+context:
+  scaffold_script: place-files.sh
+expected_outcome: |
+  docs/product/ documents the course and enrollment rules but says nothing about a
+  capacity limit, so there is no answer to give. The PM says the documentation does
+  not cover it, never states a number as if it were an existing rule, offers at most
+  two options with their tradeoffs plus a recommendation, and then stops to wait for
+  the owner's decision. It writes nothing to docs/product/ or DECISIONS.md, because
+  the owner has not decided yet.

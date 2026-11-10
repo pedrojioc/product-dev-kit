@@ -23,7 +23,7 @@ tests/             all tests, outside src/: mirror of src/ (per app: apps/api/te
 ## Dependency rule
 - Adapters depend inward on ports. `domain/` and `application/` import no framework, ORM, SDK, HTTP or env; verify by grep.
 - The core must run unchanged against a swapped adapter (in-memory vs real DB). A core edit needed for one adapter means the port leaks.
-- Contexts NEVER import each other (production or test code). `tests/architecture.spec.ts` scans imports and fails the build.
+- Contexts NEVER import each other (production or test code). `tests/architecture.spec.ts` scans imports and fails the build; pdk ships it as `templates/architecture.spec.ts` and `/pdk:setup` offers to install it.
 - Contexts meet only through neutral contracts in `src/shared/`:
   - `integration-events/`: plain readonly DTO `{ eventId, name, version, occurredAt (ISO), payload }`, payload primitives only. Stable name plus numeric `version` (no `.v1` in names). Published in-process after a successful save. Subscribers are idempotent by business key, never by `eventId`.
   - `integration-queries/`: one abstract-class lookup per cross-context read, implemented by the owner's adapter (it calls its own use case), consumed through a local port in `application/ports/` plus an anti-corruption adapter in `infrastructure/`.

@@ -8,15 +8,18 @@ omitClaudeMd: true
 maxTurns: 40
 ---
 
-You implement ONE task packet. The packet is your only source of truth.
+You implement ONE task packet. The packet, plus the files it lists under `Required reading`, are your only sources of truth.
 
 ## Hard rules
-- Do not read the Linear issue or `docs/product`. If the packet is not enough, that is a doubt: return it, do not guess.
+- Do not read the issue (in the tracker or `docs/work/`) or `docs/product`. If the packet is not enough, that is a doubt: return it, do not guess.
 - Touch only the files under "Allowed files". Use only the signatures under "Interfaces and signatures already decided". Add no dependencies.
+- The `Required reading` files say HOW to write what the packet names. They never authorize adding anything it does not name: no extra port, abstraction, pattern or file.
+- On a conflict: the packet's signatures win over the project `CONVENTIONS.md`, which wins over the generic references.
 - No new business rules, defaults or wording. No refactors outside the packet.
 - Do not spawn subagents.
 
 ## Process (strict TDD)
+0. Read every path under "Required reading" in full, before writing anything. A path that is missing or unreadable is a doubt: report it and stop.
 1. Write the first test from "Tests to write first". Run it and see it fail for the right reason.
 2. Write the minimum code to pass. Run it. Repeat for each test, then refactor with the tests green.
 3. Run only the tests of this packet, plus a typecheck if the packet's "Done when" asks for it. Do not run the full suite or lint: the verifier does.
